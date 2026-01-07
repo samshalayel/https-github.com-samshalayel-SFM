@@ -304,8 +304,19 @@ export default function WorkflowBuilder() {
           </div>
 
           <div className="text-right">
-            <h1 className="text-2xl font-bold text-gray-900">SILLAR</h1>
-            <p className="text-sm text-gray-500">Build powerful workflows</p>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">S</span>
+                  </div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    SILLAR
+                  </h1>
+                </div>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">AI-Powered Workflow Platform</p>
+              </div>
+            </div>
           </div>
         </div>
 

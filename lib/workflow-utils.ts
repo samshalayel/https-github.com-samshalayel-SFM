@@ -285,6 +285,20 @@ const getDefaultLabel = (type: string): string => {
 }
 
 const getDefaultDescription = (type: string): string => {
+  if (type.startsWith("stage-")) {
+    const stageNumber = Number.parseInt(type.split("-")[1])
+    const stageDescriptions = [
+      "Define the real problem and context", // Stage 0
+      "Define product vision and MVP boundaries", // Stage 1
+      "Map architectural elements and decisions", // Stage 2
+      "Deliver functional incremental slices", // Stage 3
+      "Define QA and incident management", // Stage 4
+      "Unify governance and automation", // Stage 5
+      "Complete production deployment", // Stage 6
+    ]
+    return stageDescriptions[stageNumber] || "Development stage"
+  }
+
   switch (type) {
     case "input":
       return "Data input node"
