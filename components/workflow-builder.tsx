@@ -21,7 +21,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Save, Play, Settings, FolderOpen, Copy, ChevronLeft, ChevronRight } from "lucide-react"
+import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -54,6 +54,7 @@ import Stage6Node from "./nodes/stage-6-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
+import SaveLoadDialog from "./save-load-dialog"
 
 const nodeTypes: NodeTypes = {
   input: InputNode,
@@ -96,6 +97,8 @@ export default function WorkflowBuilder() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSaveLoadOpen, setIsSaveLoadOpen] = useState(false)
+  const [saveLoadMode, setSaveLoadMode] = useState<"save" | "load">("save")
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge({ ...params, type: "custom" }, eds)),
@@ -167,7 +170,7 @@ export default function WorkflowBuilder() {
     [setNodes],
   )
 
-  const saveWorkflow = () => {
+  const handleOpenSave = () => {
     if (nodes.length === 0) {
       toast({
         title: "Nothing to save",
@@ -176,48 +179,22 @@ export default function WorkflowBuilder() {
       })
       return
     }
-
-    const workflow = {
-      nodes,
-      edges,
-    }
-
-    const workflowString = JSON.stringify(workflow)
-    localStorage.setItem("workflow", workflowString)
-
-    toast({
-      title: "Workflow saved",
-      description: "Your workflow has been saved successfully",
-    })
+    setSaveLoadMode("save")
+    setIsSaveLoadOpen(true)
   }
 
-  const loadWorkflow = () => {
-    const savedWorkflow = localStorage.getItem("workflow")
+  const handleOpenLoad = () => {
+    setSaveLoadMode("load")
+    setIsSaveLoadOpen(true)
+  }
 
-    if (!savedWorkflow) {
-      toast({
-        title: "No saved workflow",
-        description: "There is no workflow saved in your browser",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      const { nodes: savedNodes, edges: savedEdges } = JSON.parse(savedWorkflow)
-      setNodes(savedNodes)
-      setEdges(savedEdges)
-      toast({
-        title: "Workflow loaded",
-        description: "Your workflow has been loaded successfully",
-      })
-    } catch (error) {
-      toast({
-        title: "Error loading workflow",
-        description: "There was an error loading your workflow",
-        variant: "destructive",
-      })
-    }
+  const handleLoadWorkflow = (workflow: { nodes: any[]; edges: any[] }) => {
+    setNodes(workflow.nodes)
+    setEdges(workflow.edges)
+    toast({
+      title: "Workflow loaded",
+      description: "Your workflow has been loaded successfully",
+    })
   }
 
   const executeWorkflow = () => {
@@ -261,14 +238,6 @@ export default function WorkflowBuilder() {
         <div className="flex-1 overflow-y-auto p-6">
           <NodeLibrary />
         </div>
-
-        <div className="p-6 border-t border-gray-200/50">
-          <Button onClick={loadWorkflow} variant="outline" className="w-full rounded-lg bg-transparent">
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Show Flows
-          </Button>
-          <p className="text-xs text-gray-400 text-center mt-2">flows saved 0</p>
-        </div>
       </div>
 
       <button
@@ -286,23 +255,50 @@ export default function WorkflowBuilder() {
 
       {/* Main canvas area */}
       <div className="flex-1 flex flex-col">
-        {/* Top header bar */}
         <div className="h-16 border-b border-white/50 bg-white/80 backdrop-blur-sm flex items-center justify-between px-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Button onClick={saveWorkflow} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6">
-              <Save className="h-4 w-4 mr-2" />
-              Save Flow
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleOpenSave}
+              size="sm"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+            >
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              Save
             </Button>
-            <Button onClick={executeWorkflow} variant="outline" className="rounded-full px-6 bg-transparent">
-              <Play className="h-4 w-4 mr-2" />
-              Test Flow
+
+            <Button
+              onClick={handleOpenLoad}
+              size="sm"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Load
             </Button>
+
+            <Button
+              onClick={executeWorkflow}
+              size="sm"
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+            >
+              <Play className="h-3.5 w-3.5 mr-1.5" />
+              Test
+            </Button>
+
+            <Button
+              onClick={executeWorkflow}
+              size="sm"
+              className="bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+            >
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+              Run
+            </Button>
+
             <Button
               onClick={() => setIsSettingsOpen(true)}
-              variant="outline"
-              className="rounded-full px-6 bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-200"
+              size="sm"
+              className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
             >
-              <Settings className="h-4 w-4 mr-2" />
+              <Settings className="h-3.5 w-3.5 mr-1.5" />
               Settings
             </Button>
           </div>
@@ -361,14 +357,14 @@ export default function WorkflowBuilder() {
               />
               {nodes.length === 0 && (
                 <Panel position="center">
-                  <div className="text-center bg-white/80 backdrop-blur-md p-12 rounded-3xl shadow-2xl border border-white/50">
-                    <div className="w-32 h-32 mx-auto mb-6 border-4 border-dashed border-indigo-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
-                      <Copy className="h-12 w-12 text-indigo-400" />
+                  <div className="text-center bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-xl border border-white/50 max-w-lg mt-32">
+                    <div className="w-20 h-20 mx-auto mb-4 border-4 border-dashed border-indigo-300 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
+                      <Copy className="h-8 w-8 text-indigo-400" />
                     </div>
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 text-center">
                       Build Your Seesaw Workflow
                     </h2>
-                    <p className="text-gray-600 max-w-md text-lg">
+                    <p className="text-gray-600 text-base text-center">
                       Drag stages from the sidebar to visualize Human-AI balanced development
                     </p>
                   </div>
@@ -390,6 +386,16 @@ export default function WorkflowBuilder() {
 
       {/* Settings Dialog */}
       <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
+      {/* Save/Load Dialog */}
+      <SaveLoadDialog
+        isOpen={isSaveLoadOpen}
+        onClose={() => setIsSaveLoadOpen(false)}
+        mode={saveLoadMode}
+        currentNodes={nodes}
+        currentEdges={edges}
+        onLoad={handleLoadWorkflow}
+      />
     </div>
   )
 }
