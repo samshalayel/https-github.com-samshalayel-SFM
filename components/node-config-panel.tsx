@@ -157,6 +157,49 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
 
           <div className="text-sm text-gray-500">Configure stage responsibilities and constraints</div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="humanPercentage" className="flex items-center gap-2 text-blue-600">
+                <User className="w-4 h-4" />
+                Human %
+              </Label>
+              <Input
+                id="humanPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={humanPercentage}
+                onChange={(e) => {
+                  const value = Number.parseInt(e.target.value) || 0
+                  const clampedValue = Math.max(0, Math.min(100, value))
+                  handleChange("humanPercentage", clampedValue)
+                  handleChange("aiPercentage", 100 - clampedValue)
+                }}
+                className="font-medium"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="aiPercentage" className="flex items-center gap-2 text-purple-600">
+                <Cpu className="w-4 h-4" />
+                AI %
+              </Label>
+              <Input
+                id="aiPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={aiPercentage}
+                onChange={(e) => {
+                  const value = Number.parseInt(e.target.value) || 0
+                  const clampedValue = Math.max(0, Math.min(100, value))
+                  handleChange("aiPercentage", clampedValue)
+                  handleChange("humanPercentage", 100 - clampedValue)
+                }}
+                className="font-medium"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="stageTitle">Stage Title</Label>
             <Input

@@ -260,7 +260,7 @@ export default function WorkflowBuilder() {
             <Button
               onClick={handleOpenSave}
               size="sm"
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
             >
               <Save className="h-3.5 w-3.5 mr-1.5" />
               Save
@@ -269,7 +269,7 @@ export default function WorkflowBuilder() {
             <Button
               onClick={handleOpenLoad}
               size="sm"
-              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
             >
               <Download className="h-3.5 w-3.5 mr-1.5" />
               Load
@@ -278,7 +278,7 @@ export default function WorkflowBuilder() {
             <Button
               onClick={executeWorkflow}
               size="sm"
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
             >
               <Play className="h-3.5 w-3.5 mr-1.5" />
               Test
@@ -296,7 +296,7 @@ export default function WorkflowBuilder() {
             <Button
               onClick={() => setIsSettingsOpen(true)}
               size="sm"
-              className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-lg px-4 py-2 shadow-md hover:shadow-lg transition-all"
             >
               <Settings className="h-3.5 w-3.5 mr-1.5" />
               Settings

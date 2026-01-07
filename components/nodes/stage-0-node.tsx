@@ -9,15 +9,15 @@ interface Stage0NodeProps {
   data: {
     label: string
     description?: string
-    humanPercent?: number
-    aiPercent?: number
+    humanPercentage?: number
+    aiPercentage?: number
   }
   id: string
 }
 
 export default function Stage0Node({ data, id }: Stage0NodeProps) {
-  const humanPercent = data.humanPercent || 95
-  const aiPercent = data.aiPercent || 5
+  const humanPercent = data.humanPercentage || 95
+  const aiPercent = data.aiPercentage || 5
   const { deleteElements } = useReactFlow()
 
   const handleDelete = (e: React.MouseEvent) => {
