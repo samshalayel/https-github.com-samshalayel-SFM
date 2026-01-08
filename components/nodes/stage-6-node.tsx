@@ -1,24 +1,23 @@
 "use client"
 
 import type React from "react"
-import { Handle, Position } from "reactflow"
+import { Handle, Position, useReactFlow } from "reactflow"
 import { Trash2 } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
-import { useReactFlow } from "reactflow"
 
 interface Stage6NodeProps {
   data: {
     label: string
     description?: string
-    humanPercent?: number
-    aiPercent?: number
+    humanPercentage?: number
+    aiPercentage?: number
   }
   id: string
 }
 
 export default function Stage6Node({ data, id }: Stage6NodeProps) {
-  const humanPercent = data.humanPercent || 10
-  const aiPercent = data.aiPercent || 90
+  const humanPercent = typeof data.humanPercentage === "number" ? data.humanPercentage : 70
+  const aiPercent = typeof data.aiPercentage === "number" ? data.aiPercentage : 30
   const { deleteElements } = useReactFlow()
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -31,14 +30,9 @@ export default function Stage6Node({ data, id }: Stage6NodeProps) {
       <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-blue-600 border-2 border-white" />
 
       <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-purple-600 text-xs font-semibold">AI:{aiPercent}%</span>
-          <SeesawIcon
-            humanPercent={humanPercent}
-            aiPercent={aiPercent}
-            size={24}
-            className="opacity-95 drop-shadow-md"
-          />
+          <SeesawIcon humanPercent={humanPercent} aiPercent={aiPercent} size={24} />
           <span className="text-blue-600 text-xs font-semibold">H:{humanPercent}%</span>
         </div>
         <span className="text-gray-500 text-xs font-medium">Stage 6</span>
