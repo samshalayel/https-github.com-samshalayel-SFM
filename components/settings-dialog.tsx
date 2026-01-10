@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label"
 interface SettingsDialogProps {
   isOpen: boolean
   onClose: () => void
+  isDarkMode?: boolean
 }
 
-export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
+export default function SettingsDialog({ isOpen, onClose, isDarkMode = true }: SettingsDialogProps) {
   const [settings, setSettings] = useState({
     companyName: "",
     productOwner: "",
@@ -39,8 +40,18 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-black/40 via-indigo-900/30 to-purple-900/30 backdrop-blur-md">
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-white/20">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md ${
+        isDarkMode
+          ? "bg-gradient-to-br from-black/60 via-indigo-900/40 to-purple-900/40"
+          : "bg-gradient-to-br from-black/40 via-indigo-900/30 to-purple-900/30"
+      }`}
+    >
+      <div
+        className={`backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border ${
+          isDarkMode ? "bg-[#111111]/95 border-white/10" : "bg-white/95 border-white/20"
+        }`}
+      >
         <div className="relative flex items-center justify-between p-6 bg-gradient-to-r from-indigo-600 to-purple-600">
           <div>
             <h2 className="text-2xl font-bold text-white">Project Settings</h2>
@@ -57,8 +68,11 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Project Name */}
           <div className="space-y-2">
-            <Label htmlFor="projectName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-indigo-600" />
+            <Label
+              htmlFor="projectName"
+              className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+            >
+              <Briefcase className="h-4 w-4 text-indigo-500" />
               Project Name
             </Label>
             <Input
@@ -66,14 +80,21 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
               value={settings.projectName}
               onChange={(e) => setSettings({ ...settings, projectName: e.target.value })}
               placeholder="Enter project name"
-              className="w-full border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 rounded-xl"
+              className={`w-full rounded-xl ${
+                isDarkMode
+                  ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-indigo-500"
+                  : "border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
+              }`}
             />
           </div>
 
           {/* Company Name */}
           <div className="space-y-2">
-            <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-indigo-600" />
+            <Label
+              htmlFor="companyName"
+              className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+            >
+              <Building2 className="h-4 w-4 text-indigo-500" />
               Company Name
             </Label>
             <Input
@@ -81,23 +102,38 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
               value={settings.companyName}
               onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
               placeholder="Enter company name"
-              className="w-full border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 rounded-xl"
+              className={`w-full rounded-xl ${
+                isDarkMode
+                  ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-indigo-500"
+                  : "border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
+              }`}
             />
           </div>
 
           {/* Logo Upload */}
           <div className="space-y-2">
-            <Label htmlFor="logo" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Upload className="h-4 w-4 text-indigo-600" />
+            <Label
+              htmlFor="logo"
+              className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+            >
+              <Upload className="h-4 w-4 text-indigo-500" />
               Company Logo
             </Label>
             <div className="flex items-center gap-4">
               <label
                 htmlFor="logo"
-                className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed border-indigo-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
+                className={`flex-1 flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all group ${
+                  isDarkMode
+                    ? "border-indigo-500/30 hover:border-indigo-500/60 hover:bg-indigo-500/10"
+                    : "border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50"
+                }`}
               >
-                <Upload className="h-5 w-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
-                <span className="text-sm text-gray-600 group-hover:text-indigo-600 font-medium transition-colors">
+                <Upload
+                  className={`h-5 w-5 transition-colors ${isDarkMode ? "text-indigo-400 group-hover:text-indigo-300" : "text-indigo-400 group-hover:text-indigo-600"}`}
+                />
+                <span
+                  className={`text-sm font-medium transition-colors ${isDarkMode ? "text-gray-400 group-hover:text-indigo-300" : "text-gray-600 group-hover:text-indigo-600"}`}
+                >
                   {settings.logo ? settings.logo.name : "Click to upload logo"}
                 </span>
               </label>
@@ -109,8 +145,11 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
           <div className="grid grid-cols-2 gap-4">
             {/* Product Owner */}
             <div className="space-y-2">
-              <Label htmlFor="productOwner" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <User className="h-4 w-4 text-indigo-600" />
+              <Label
+                htmlFor="productOwner"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <User className="h-4 w-4 text-indigo-500" />
                 Product Owner
               </Label>
               <Input
@@ -118,14 +157,21 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
                 value={settings.productOwner}
                 onChange={(e) => setSettings({ ...settings, productOwner: e.target.value })}
                 placeholder="Owner name"
-                className="w-full border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 rounded-xl"
+                className={`w-full rounded-xl ${
+                  isDarkMode
+                    ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-indigo-500"
+                    : "border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
+                }`}
               />
             </div>
 
             {/* Product Manager */}
             <div className="space-y-2">
-              <Label htmlFor="productManager" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <User className="h-4 w-4 text-purple-600" />
+              <Label
+                htmlFor="productManager"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <User className="h-4 w-4 text-purple-500" />
                 Product Manager
               </Label>
               <Input
@@ -133,7 +179,11 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
                 value={settings.productManager}
                 onChange={(e) => setSettings({ ...settings, productManager: e.target.value })}
                 placeholder="Manager name"
-                className="w-full border-gray-200 focus:border-purple-400 focus:ring-purple-400 rounded-xl"
+                className={`w-full rounded-xl ${
+                  isDarkMode
+                    ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-purple-500"
+                    : "border-gray-200 focus:border-purple-400 focus:ring-purple-400"
+                }`}
               />
             </div>
           </div>
@@ -142,8 +192,11 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
           <div className="grid grid-cols-2 gap-4">
             {/* Budget */}
             <div className="space-y-2">
-              <Label htmlFor="budget" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
+              <Label
+                htmlFor="budget"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <DollarSign className="h-4 w-4 text-emerald-500" />
                 Budget
               </Label>
               <Input
@@ -151,14 +204,21 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
                 value={settings.budget}
                 onChange={(e) => setSettings({ ...settings, budget: e.target.value })}
                 placeholder="e.g., $50,000"
-                className="w-full border-gray-200 focus:border-green-400 focus:ring-green-400 rounded-xl"
+                className={`w-full rounded-xl ${
+                  isDarkMode
+                    ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500"
+                    : "border-gray-200 focus:border-green-400 focus:ring-green-400"
+                }`}
               />
             </div>
 
             {/* Duration */}
             <div className="space-y-2">
-              <Label htmlFor="duration" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-blue-600" />
+              <Label
+                htmlFor="duration"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <Calendar className="h-4 w-4 text-blue-500" />
                 Duration
               </Label>
               <Input
@@ -166,17 +226,29 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
                 value={settings.duration}
                 onChange={(e) => setSettings({ ...settings, duration: e.target.value })}
                 placeholder="e.g., 6 months"
-                className="w-full border-gray-200 focus:border-blue-400 focus:ring-blue-400 rounded-xl"
+                className={`w-full rounded-xl ${
+                  isDarkMode
+                    ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500"
+                    : "border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                }`}
               />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
+        <div
+          className={`flex items-center justify-end gap-3 p-6 border-t ${
+            isDarkMode ? "border-white/10 bg-[#0a0a0a]/50" : "border-gray-100 bg-gray-50/50"
+          }`}
+        >
           <Button
             onClick={onClose}
             variant="outline"
-            className="rounded-xl border-gray-300 hover:bg-gray-100 px-6 bg-transparent"
+            className={`rounded-xl px-6 ${
+              isDarkMode
+                ? "border-white/10 bg-transparent text-gray-300 hover:bg-white/10"
+                : "border-gray-300 hover:bg-gray-100 bg-transparent"
+            }`}
           >
             Cancel
           </Button>

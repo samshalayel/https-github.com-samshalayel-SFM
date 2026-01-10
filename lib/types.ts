@@ -134,6 +134,13 @@ export interface NodeData {
   scalability?: string
   security?: string
   performance?: string
+
+  gateType?: "problem" | "product" | "architecture" | "production" | "release"
+  decisionAuthority?: "Human Only" | "Human" | "Human + AI" | "AI Advisory"
+  approvalRequired?: boolean
+  approvers?: string[]
+  gateChecklist?: string[]
+  gateStatus?: "pending" | "approved" | "rejected"
 }
 
 export type WorkflowNode = Node<NodeData>

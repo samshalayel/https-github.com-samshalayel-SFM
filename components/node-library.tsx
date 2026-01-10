@@ -2,10 +2,15 @@
 
 import type React from "react"
 
-import { Lightbulb, Target, Network, Slice, Eye, RefreshCw, Rocket } from "lucide-react"
+import { Lightbulb, Target, Network, Slice, Eye, RefreshCw, Rocket, Shield } from "lucide-react"
 import SeesawIcon from "./seesaw-icon"
 
+interface NodeLibraryProps {
+  isDarkMode?: boolean
+}
+
 const nodeTypes = [
+  // ... existing stage nodes ...
   {
     type: "stage-0",
     label: "Stage 0",
@@ -85,7 +90,70 @@ const nodeTypes = [
   },
 ]
 
-export default function NodeLibrary() {
+const gateTypes = [
+  {
+    type: "gate-problem",
+    label: "Problem Gate",
+    title: "Problem Gate",
+    description: "AI may advise. Only humans sign.",
+    icon: Shield,
+    displayName: "Problem Gate",
+    authority: "Human Only",
+    humanPercent: 100,
+    aiPercent: 0,
+    color: "from-red-500 to-red-600",
+  },
+  {
+    type: "gate-product",
+    label: "Product Gate",
+    title: "Product Gate",
+    description: "Human decides product boundaries.",
+    icon: Shield,
+    displayName: "Product Gate",
+    authority: "Human",
+    humanPercent: 95,
+    aiPercent: 5,
+    color: "from-orange-500 to-orange-600",
+  },
+  {
+    type: "gate-architecture",
+    label: "Architecture Gate",
+    title: "Architecture Gate",
+    description: "Human approves architecture decisions.",
+    icon: Shield,
+    displayName: "Architecture Gate",
+    authority: "Human",
+    humanPercent: 90,
+    aiPercent: 10,
+    color: "from-amber-500 to-amber-600",
+  },
+  {
+    type: "gate-production",
+    label: "Production Gate",
+    title: "Production Gate",
+    description: "Joint human-AI production approval.",
+    icon: Shield,
+    displayName: "Production Gate",
+    authority: "Human + AI",
+    humanPercent: 70,
+    aiPercent: 30,
+    color: "from-yellow-500 to-yellow-600",
+  },
+  {
+    type: "gate-release",
+    label: "Release Gate",
+    title: "Release Gate",
+    description: "Final release requires human sign-off.",
+    icon: Shield,
+    displayName: "Release Gate",
+    authority: "Human Only",
+    humanPercent: 100,
+    aiPercent: 0,
+    color: "from-green-500 to-green-600",
+  },
+]
+
+export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string, displayName: string) => {
     event.dataTransfer.setData("application/reactflow", nodeType)
     event.dataTransfer.setData("application/reactflow-label", displayName)
@@ -94,32 +162,95 @@ export default function NodeLibrary() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Stage Nodes */}
       {nodeTypes.map((node) => {
         const IconComponent = node.icon
         return (
           <div
             key={node.type}
-            className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 cursor-move hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group"
+            className={`backdrop-blur-sm border rounded-2xl p-4 cursor-move hover:scale-[1.02] transition-all duration-200 group ${
+              isDarkMode
+                ? "bg-[#1a1a1a]/80 border-white/10 hover:bg-[#1f1f1f] hover:border-[#f26522]/30 hover:shadow-lg hover:shadow-[#f26522]/10"
+                : "bg-white/80 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/20"
+            }`}
             draggable
             onDragStart={(e) => onDragStart(e, node.type, node.displayName)}
           >
-            <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+            <div
+              className={`flex items-center justify-between mb-3 pb-3 border-b ${isDarkMode ? "border-white/10" : "border-gray-200"}`}
+            >
               <div className="flex items-center gap-2">
-                <span className="text-blue-600 font-semibold text-xs">Human: {node.humanPercent}%</span>
+                <span className={`font-semibold text-xs ${isDarkMode ? "text-[#f5e6d3]" : "text-blue-600"}`}>
+                  Human: {node.humanPercent}%
+                </span>
                 <SeesawIcon humanPercent={node.humanPercent} aiPercent={node.aiPercent} size={24} />
-                <span className="text-purple-600 font-semibold text-xs">AI: {node.aiPercent}%</span>
+                <span className="text-purple-400 font-semibold text-xs">AI: {node.aiPercent}%</span>
               </div>
-              <span className="text-xs text-gray-500 font-medium">{node.label}</span>
+              <span className={`text-xs font-medium ${isDarkMode ? "text-[#f5e6d3]/70" : "text-gray-500"}`}>
+                {node.label}
+              </span>
             </div>
 
-            <h3 className="text-center text-base font-bold text-gray-900 mb-3">{node.title}</h3>
+            <h3 className={`text-center text-base font-bold mb-3 ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
+              {node.title}
+            </h3>
 
-            <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-purple-600 rounded-full mb-3" />
+            <div
+              className={`h-1 rounded-full mb-3 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-[#f26522] via-purple-500 to-pink-500"
+                  : "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+              }`}
+            />
 
-            <p className="text-center text-xs text-gray-600 leading-relaxed">{node.description}</p>
+            <p className={`text-center text-xs leading-relaxed ${isDarkMode ? "text-[#f5e6d3]/80" : "text-gray-600"}`}>
+              {node.description}
+            </p>
           </div>
         )
       })}
+
+      {/* Human Quality Gates */}
+      <div className={`mt-6 pt-6 border-t-2 border-dashed ${isDarkMode ? "border-[#f26522]/30" : "border-gray-300"}`}>
+        <h3
+          className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}
+        >
+          <Shield className={`h-5 w-5 ${isDarkMode ? "text-[#f26522]" : "text-red-500"}`} />
+          Human Quality Gates
+        </h3>
+        <p className={`text-xs mb-4 ${isDarkMode ? "text-[#f5e6d3]/80" : "text-gray-600"}`}>
+          AI may advise. Only humans sign.
+        </p>
+
+        {gateTypes.map((gate) => {
+          const IconComponent = gate.icon
+          return (
+            <div
+              key={gate.type}
+              className={`bg-gradient-to-r ${gate.color} rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-current/20 hover:scale-[1.02] transition-all duration-200 group mb-3`}
+              draggable
+              onDragStart={(e) => onDragStart(e, gate.type, gate.displayName)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <IconComponent className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-white font-bold text-sm">{gate.title}</span>
+                </div>
+                <span className="text-white/80 text-xs px-2 py-1 bg-white/20 rounded-full">{gate.authority}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-white/90 mb-2">
+                <span>Human: {gate.humanPercent}%</span>
+                <span>AI: {gate.aiPercent}%</span>
+              </div>
+
+              <p className="text-center text-xs text-white/80 leading-relaxed">{gate.description}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

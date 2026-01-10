@@ -48,6 +48,20 @@ export const createNode = ({
     }
   }
 
+  if (type.startsWith("gate-")) {
+    const gateConfig = getGateConfig(type)
+    return {
+      ...baseNode,
+      data: {
+        ...baseNode.data,
+        ...gateConfig,
+        approvers: [],
+        gateChecklist: [],
+        gateStatus: "pending",
+      },
+    }
+  }
+
   switch (type) {
     case "input":
       return {
@@ -240,6 +254,15 @@ export const createNode = ({
 }
 
 const getDefaultLabel = (type: string): string => {
+  const gateLabels: Record<string, string> = {
+    "gate-problem": "Problem Gate",
+    "gate-product": "Product Gate",
+    "gate-architecture": "Architecture Gate",
+    "gate-production": "Production Gate",
+    "gate-release": "Release Gate",
+  }
+  if (gateLabels[type]) return gateLabels[type]
+
   switch (type) {
     case "input":
       return "Input"
@@ -288,15 +311,26 @@ const getDefaultDescription = (type: string): string => {
   if (type.startsWith("stage-")) {
     const stageNumber = Number.parseInt(type.split("-")[1])
     const stageDescriptions = [
-      "Define the real problem and context", // Stage 0
-      "Define product vision and MVP boundaries", // Stage 1
-      "Map architectural elements and decisions", // Stage 2
-      "Deliver functional incremental slices", // Stage 3
-      "Define QA and incident management", // Stage 4
-      "Unify governance and automation", // Stage 5
-      "Complete production deployment", // Stage 6
+      "Define the real problem and context",
+      "Define product vision and MVP boundaries",
+      "Map architectural elements and decisions",
+      "Deliver functional incremental slices",
+      "Define QA and incident management",
+      "Unify governance and automation",
+      "Complete production deployment",
     ]
     return stageDescriptions[stageNumber] || "Development stage"
+  }
+
+  if (type.startsWith("gate-")) {
+    const gateDescriptions: Record<string, string> = {
+      "gate-problem": "AI may advise. Only humans sign.",
+      "gate-product": "Human decides product boundaries.",
+      "gate-architecture": "Human approves architecture decisions.",
+      "gate-production": "Joint human-AI production approval.",
+      "gate-release": "Final release requires human sign-off.",
+    }
+    return gateDescriptions[type] || "Human quality gate"
   }
 
   switch (type) {
@@ -345,14 +379,55 @@ const getDefaultDescription = (type: string): string => {
 
 const getStagePercentages = (stageNumber: number): { humanPercentage: number; aiPercentage: number } => {
   const percentages = [
-    { humanPercentage: 95, aiPercentage: 5 }, // Stage 0: Problem
-    { humanPercentage: 80, aiPercentage: 20 }, // Stage 1: Product Shape
-    { humanPercentage: 60, aiPercentage: 40 }, // Stage 2: Architecture
-    { humanPercentage: 40, aiPercentage: 60 }, // Stage 3: Production
-    { humanPercentage: 30, aiPercentage: 70 }, // Stage 4: Observability
-    { humanPercentage: 20, aiPercentage: 80 }, // Stage 5: Reproducibility
-    { humanPercentage: 15, aiPercentage: 85 }, // Stage 6: Production Ready
+    { humanPercentage: 95, aiPercentage: 5 },
+    { humanPercentage: 80, aiPercentage: 20 },
+    { humanPercentage: 60, aiPercentage: 40 },
+    { humanPercentage: 40, aiPercentage: 60 },
+    { humanPercentage: 30, aiPercentage: 70 },
+    { humanPercentage: 20, aiPercentage: 80 },
+    { humanPercentage: 15, aiPercentage: 85 },
   ]
 
   return percentages[stageNumber] || { humanPercentage: 50, aiPercentage: 50 }
+}
+
+const getGateConfig = (type: string): Partial<NodeData> => {
+  const gateConfigs: Record<string, Partial<NodeData>> = {
+    "gate-problem": {
+      gateType: "problem",
+      decisionAuthority: "Human Only",
+      humanPercentage: 100,
+      aiPercentage: 0,
+      description: "AI may advise. Only humans sign.",
+    },
+    "gate-product": {
+      gateType: "product",
+      decisionAuthority: "Human",
+      humanPercentage: 95,
+      aiPercentage: 5,
+      description: "Human decides product boundaries.",
+    },
+    "gate-architecture": {
+      gateType: "architecture",
+      decisionAuthority: "Human",
+      humanPercentage: 90,
+      aiPercentage: 10,
+      description: "Human approves architecture decisions.",
+    },
+    "gate-production": {
+      gateType: "production",
+      decisionAuthority: "Human + AI",
+      humanPercentage: 70,
+      aiPercentage: 30,
+      description: "Joint human-AI production approval.",
+    },
+    "gate-release": {
+      gateType: "release",
+      decisionAuthority: "Human Only",
+      humanPercentage: 100,
+      aiPercentage: 0,
+      description: "Final release requires human sign-off.",
+    },
+  }
+  return gateConfigs[type] || gateConfigs["gate-problem"]
 }

@@ -20,6 +20,7 @@ interface SaveLoadDialogProps {
   currentNodes: any[]
   currentEdges: any[]
   onLoad: (workflow: { nodes: any[]; edges: any[] }) => void
+  isDarkMode?: boolean
 }
 
 export default function SaveLoadDialog({
@@ -29,6 +30,7 @@ export default function SaveLoadDialog({
   currentNodes,
   currentEdges,
   onLoad,
+  isDarkMode = true,
 }: SaveLoadDialogProps) {
   const [workflowName, setWorkflowName] = useState("")
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>(() => {
@@ -77,8 +79,16 @@ export default function SaveLoadDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[70vh] overflow-hidden border border-gray-200">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${
+        isDarkMode ? "bg-black/60" : "bg-black/50"
+      }`}
+    >
+      <div
+        className={`rounded-2xl shadow-2xl w-full max-w-2xl max-h-[70vh] overflow-hidden border ${
+          isDarkMode ? "bg-[#111111] border-white/10" : "bg-white border-gray-200"
+        }`}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white relative">
           <button
@@ -103,7 +113,10 @@ export default function SaveLoadDialog({
           {mode === "save" ? (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="workflow-name" className="text-gray-700 font-medium mb-2 block">
+                <Label
+                  htmlFor="workflow-name"
+                  className={`font-medium mb-2 block ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Workflow Name
                 </Label>
                 <Input
@@ -112,28 +125,42 @@ export default function SaveLoadDialog({
                   placeholder="Enter workflow name..."
                   value={workflowName}
                   onChange={(e) => setWorkflowName(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  className={`w-full rounded-lg ${
+                    isDarkMode
+                      ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-indigo-500"
+                      : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  }`}
                 />
               </div>
 
               {savedWorkflows.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Previously Saved:</h3>
+                  <h3 className={`text-sm font-semibold mb-3 ${isDarkMode ? "text-gray-400" : "text-gray-700"}`}>
+                    Previously Saved:
+                  </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {savedWorkflows.map((workflow, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                          isDarkMode
+                            ? "bg-[#1a1a1a] border-white/10 hover:bg-[#222]"
+                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                        }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{workflow.name}</p>
-                          <p className="text-xs text-gray-500">{formatDate(workflow.timestamp)}</p>
+                          <p className={`font-medium truncate ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                            {workflow.name}
+                          </p>
+                          <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+                            {formatDate(workflow.timestamp)}
+                          </p>
                         </div>
                         <Button
                           onClick={() => handleDelete(index)}
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -147,26 +174,38 @@ export default function SaveLoadDialog({
             <div>
               {savedWorkflows.length === 0 ? (
                 <div className="text-center py-12">
-                  <FolderOpen className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500 text-lg">No saved workflows found</p>
-                  <p className="text-gray-400 text-sm mt-2">Save a workflow first to load it later</p>
+                  <FolderOpen className={`h-16 w-16 mx-auto mb-4 ${isDarkMode ? "text-gray-600" : "text-gray-300"}`} />
+                  <p className={`text-lg ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    No saved workflows found
+                  </p>
+                  <p className={`text-sm mt-2 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                    Save a workflow first to load it later
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {savedWorkflows.map((workflow, index) => (
                     <div
                       key={index}
-                      className="group flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+                      className={`group flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer ${
+                        isDarkMode
+                          ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/10"
+                          : "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:shadow-md"
+                      }`}
                       onClick={() => handleLoad(workflow)}
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="p-3 bg-white rounded-lg shadow-sm">
-                          <Download className="h-5 w-5 text-indigo-600" />
+                        <div className={`p-3 rounded-lg shadow-sm ${isDarkMode ? "bg-[#1a1a1a]" : "bg-white"}`}>
+                          <Download className="h-5 w-5 text-indigo-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">{workflow.name}</p>
-                          <p className="text-xs text-gray-500">{formatDate(workflow.timestamp)}</p>
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className={`font-semibold truncate ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                            {workflow.name}
+                          </p>
+                          <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+                            {formatDate(workflow.timestamp)}
+                          </p>
+                          <p className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
                             {workflow.nodes.length} stages, {workflow.edges.length} connections
                           </p>
                         </div>
@@ -179,7 +218,7 @@ export default function SaveLoadDialog({
                           }}
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -194,8 +233,18 @@ export default function SaveLoadDialog({
 
         {/* Footer */}
         {mode === "save" && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50 flex justify-end gap-3">
-            <Button onClick={onClose} variant="outline" className="px-6 bg-transparent">
+          <div
+            className={`border-t p-6 flex justify-end gap-3 ${
+              isDarkMode ? "border-white/10 bg-[#0a0a0a]/50" : "border-gray-200 bg-gray-50"
+            }`}
+          >
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className={`px-6 ${
+                isDarkMode ? "bg-transparent border-white/10 text-gray-300 hover:bg-white/10" : "bg-transparent"
+              }`}
+            >
               Cancel
             </Button>
             <Button
