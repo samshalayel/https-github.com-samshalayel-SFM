@@ -21,7 +21,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon } from "lucide-react"
+import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -239,6 +239,39 @@ export default function WorkflowBuilder() {
     }, 2000)
   }
 
+  const exportWorkflow = () => {
+    if (nodes.length === 0) {
+      toast({
+        title: "Nothing to export",
+        description: "Add some nodes to your workflow first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const workflowData = {
+      name: "Sillar Workflow",
+      exportedAt: new Date().toISOString(),
+      nodes: nodes,
+      edges: edges,
+    }
+
+    const blob = new Blob([JSON.stringify(workflowData, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `sillar-workflow-${Date.now()}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: "Workflow exported",
+      description: "Your workflow has been downloaded as JSON file",
+    })
+  }
+
   return (
     <div
       className={`flex flex-row h-screen ${
@@ -325,13 +358,27 @@ export default function WorkflowBuilder() {
             </Button>
 
             <Button
-              onClick={executeWorkflow}
+              onClick={exportWorkflow}
               size="sm"
               variant="outline"
               className={`rounded-lg px-4 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-[#f26522]/10 text-[#f26522] border-[#f26522]/50 hover:border-[#f26522]"
                   : "bg-transparent hover:bg-orange-500/10 text-orange-600 border-orange-500"
+              }`}
+            >
+              <Upload className="h-4 w-4 mr-1.5" />
+              Export
+            </Button>
+
+            <Button
+              onClick={executeWorkflow}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-purple-500/10 text-purple-400 border-purple-500/50 hover:border-purple-500"
+                  : "bg-transparent hover:bg-purple-500/10 text-purple-600 border-purple-500"
               }`}
             >
               <Play className="h-4 w-4 mr-1.5" />
