@@ -170,40 +170,42 @@ export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
             key={node.type}
             className={`backdrop-blur-sm border rounded-2xl p-4 cursor-move hover:scale-[1.02] transition-all duration-200 group ${
               isDarkMode
-                ? "bg-[#1a1a1a]/80 border-white/10 hover:bg-[#1f1f1f] hover:border-[#f26522]/30 hover:shadow-lg hover:shadow-[#f26522]/10"
+                ? "bg-gradient-to-br from-[#1f1f3a]/80 to-[#151528]/80 border-white/5 hover:border-[#f26522]/30 hover:shadow-lg hover:shadow-[#f26522]/10"
                 : "bg-white/80 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/20"
             }`}
             draggable
             onDragStart={(e) => onDragStart(e, node.type, node.displayName)}
           >
             <div
-              className={`flex items-center justify-between mb-3 pb-3 border-b ${isDarkMode ? "border-white/10" : "border-gray-200"}`}
+              className={`flex items-center justify-between mb-3 pb-3 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}
             >
               <div className="flex items-center gap-2">
-                <span className={`font-semibold text-xs ${isDarkMode ? "text-[#f5e6d3]" : "text-blue-600"}`}>
+                <span className={`font-semibold text-xs ${isDarkMode ? "text-teal-400" : "text-blue-600"}`}>
                   Human: {node.humanPercent}%
                 </span>
                 <SeesawIcon humanPercent={node.humanPercent} aiPercent={node.aiPercent} size={24} />
-                <span className="text-purple-400 font-semibold text-xs">AI: {node.aiPercent}%</span>
+                <span className={`font-semibold text-xs ${isDarkMode ? "text-purple-400" : "text-purple-600"}`}>
+                  AI: {node.aiPercent}%
+                </span>
               </div>
-              <span className={`text-xs font-medium ${isDarkMode ? "text-[#f5e6d3]/70" : "text-gray-500"}`}>
+              <span className={`text-xs font-medium ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
                 {node.label}
               </span>
             </div>
 
-            <h3 className={`text-center text-base font-bold mb-3 ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
+            <h3 className={`text-center text-base font-bold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               {node.title}
             </h3>
 
             <div
               className={`h-1 rounded-full mb-3 ${
                 isDarkMode
-                  ? "bg-gradient-to-r from-[#f26522] via-purple-500 to-pink-500"
+                  ? "bg-gradient-to-r from-[#f26522] via-purple-500 to-teal-500"
                   : "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
               }`}
             />
 
-            <p className={`text-center text-xs leading-relaxed ${isDarkMode ? "text-[#f5e6d3]/80" : "text-gray-600"}`}>
+            <p className={`text-center text-xs leading-relaxed ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
               {node.description}
             </p>
           </div>
@@ -211,14 +213,12 @@ export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
       })}
 
       {/* Human Quality Gates */}
-      <div className={`mt-6 pt-6 border-t-2 border-dashed ${isDarkMode ? "border-[#f26522]/30" : "border-gray-300"}`}>
-        <h3
-          className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}
-        >
+      <div className={`mt-6 pt-6 border-t-2 border-dashed ${isDarkMode ? "border-[#f26522]/20" : "border-gray-300"}`}>
+        <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
           <Shield className={`h-5 w-5 ${isDarkMode ? "text-[#f26522]" : "text-red-500"}`} />
           Human Quality Gates
         </h3>
-        <p className={`text-xs mb-4 ${isDarkMode ? "text-[#f5e6d3]/80" : "text-gray-600"}`}>
+        <p className={`text-xs mb-4 ${isDarkMode ? "text-gray-500" : "text-gray-600"}`}>
           AI may advise. Only humans sign.
         </p>
 
@@ -232,20 +232,15 @@ export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
               onDragStart={(e) => onDragStart(e, gate.type, gate.displayName)}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <IconComponent className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-white font-bold text-sm">{gate.title}</span>
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <IconComponent className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-white/80 text-xs px-2 py-1 bg-white/20 rounded-full">{gate.authority}</span>
+                <span className="text-white font-bold text-sm">{gate.title}</span>
               </div>
-
               <div className="flex items-center justify-between text-xs text-white/90 mb-2">
                 <span>Human: {gate.humanPercent}%</span>
                 <span>AI: {gate.aiPercent}%</span>
               </div>
-
               <p className="text-center text-xs text-white/80 leading-relaxed">{gate.description}</p>
             </div>
           )
