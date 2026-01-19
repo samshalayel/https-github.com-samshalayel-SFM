@@ -44,16 +44,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // If no user and not on login page, redirect to login
+  // If no user and not on login page, redirect to cp.sillar.us/login
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    url.searchParams.set("returnUrl", request.nextUrl.pathname)
-    return NextResponse.redirect(url)
+    // Redirect to main login at cp.sillar.us
+    const currentUrl = request.nextUrl.href
+    const loginUrl = new URL("https://cp.sillar.us/login")
+    loginUrl.searchParams.set("returnUrl", currentUrl)
+    return NextResponse.redirect(loginUrl)
   }
 
   // If user exists and on login page, redirect to home
