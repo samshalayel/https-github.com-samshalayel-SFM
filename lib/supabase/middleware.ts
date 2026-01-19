@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
   ) {
     // Redirect to main login at cp.sillar.us
     const currentUrl = request.nextUrl.href
-    const loginUrl = new URL("https://cp.sillar.us/login")
+    const loginUrl = new URL("https://cp.sillar.us/auth/login")
     loginUrl.searchParams.set("returnUrl", currentUrl)
     return NextResponse.redirect(loginUrl)
   }
