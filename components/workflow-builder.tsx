@@ -21,7 +21,8 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload } from "lucide-react"
+import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut } from "lucide-react"
+import { createBrowserClient } from "@supabase/ssr"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -118,6 +119,15 @@ export default function WorkflowBuilder() {
     const newMode = !isDarkMode
     setIsDarkMode(newMode)
     localStorage.setItem("sillar-theme", newMode ? "dark" : "light")
+  }
+
+  const handleLogout = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await supabase.auth.signOut()
+    window.location.href = "https://cp.sillar.us/auth/login"
   }
 
   const onConnect = useCallback(
@@ -425,6 +435,20 @@ export default function WorkflowBuilder() {
               aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+
+            <Button
+              onClick={handleLogout}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-red-500/10 text-red-400 border-red-500/50 hover:border-red-500"
+                  : "bg-transparent hover:bg-red-500/10 text-red-600 border-red-500"
+              }`}
+            >
+              <LogOut className="h-4 w-4 mr-1.5" />
+              Logout
             </Button>
           </div>
 
