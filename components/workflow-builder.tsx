@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useCallback, useRef, useEffect } from "react"
 import ReactFlow, {
   ReactFlowProvider,
@@ -21,8 +20,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -121,13 +119,124 @@ export default function WorkflowBuilder() {
     localStorage.setItem("sillar-theme", newMode ? "dark" : "light")
   }
 
-  const handleLogout = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    await supabase.auth.signOut()
+  const handleLogout = () => {
     window.location.href = "https://cp.sillar.us/auth/login"
+  }
+
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
+
+  const loadSeesawTemplate = () => {
+    // Define the Seesaw Model template
+    // Stage 0 → Problem Gate → Stage 1 → Product Gate → Stage 2 → Architecture Gate → Stage 3 → Production Gate → Stage 5 → Release Gate → Stage 6
+    
+    const templateNodes = [
+      // Stage 0
+      {
+        id: "stage-0-template",
+        type: "stage-0",
+        position: { x: 50, y: 200 },
+        data: { label: "Stage 0", displayName: "Problem / Technical Lock", humanPercentage: 95, aiPercentage: 5 },
+      },
+      // Problem Gate
+      {
+        id: "gate-problem-template",
+        type: "gate-problem",
+        position: { x: 300, y: 200 },
+        data: { label: "Problem Gate", displayName: "Problem Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only" },
+      },
+      // Stage 1
+      {
+        id: "stage-1-template",
+        type: "stage-1",
+        position: { x: 550, y: 200 },
+        data: { label: "Stage 1", displayName: "Product Shape", humanPercentage: 80, aiPercentage: 20 },
+      },
+      // Product Gate
+      {
+        id: "gate-product-template",
+        type: "gate-product",
+        position: { x: 800, y: 200 },
+        data: { label: "Product Gate", displayName: "Product Gate", humanPercentage: 95, aiPercentage: 5, authority: "Human" },
+      },
+      // Stage 2
+      {
+        id: "stage-2-template",
+        type: "stage-2",
+        position: { x: 1050, y: 200 },
+        data: { label: "Stage 2", displayName: "Architecture Spine", humanPercentage: 70, aiPercentage: 30 },
+      },
+      // Architecture Gate
+      {
+        id: "gate-architecture-template",
+        type: "gate-architecture",
+        position: { x: 1300, y: 200 },
+        data: { label: "Architecture Gate", displayName: "Architecture Gate", humanPercentage: 90, aiPercentage: 10, authority: "Human" },
+      },
+      // Stage 3
+      {
+        id: "stage-3-template",
+        type: "stage-3",
+        position: { x: 1550, y: 200 },
+        data: { label: "Stage 3", displayName: "Production Slice", humanPercentage: 50, aiPercentage: 50 },
+      },
+      // Production Gate
+      {
+        id: "gate-production-template",
+        type: "gate-production",
+        position: { x: 1800, y: 200 },
+        data: { label: "Production Gate", displayName: "Production Gate", humanPercentage: 70, aiPercentage: 30, authority: "Human + AI" },
+      },
+      // Stage 5
+      {
+        id: "stage-5-template",
+        type: "stage-5",
+        position: { x: 2050, y: 200 },
+        data: { label: "Stage 5", displayName: "Reproducibility", humanPercentage: 30, aiPercentage: 70 },
+      },
+      // Release Gate
+      {
+        id: "gate-release-template",
+        type: "gate-release",
+        position: { x: 2300, y: 200 },
+        data: { label: "Release Gate", displayName: "Release Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only" },
+      },
+      // Stage 6
+      {
+        id: "stage-6-template",
+        type: "stage-6",
+        position: { x: 2550, y: 200 },
+        data: { label: "Stage 6", displayName: "Production Ready", humanPercentage: 20, aiPercentage: 80 },
+      },
+    ]
+
+    const templateEdges = [
+      { id: "e-s0-gp", source: "stage-0-template", target: "gate-problem-template", type: "custom" },
+      { id: "e-gp-s1", source: "gate-problem-template", target: "stage-1-template", type: "custom" },
+      { id: "e-s1-gprod", source: "stage-1-template", target: "gate-product-template", type: "custom" },
+      { id: "e-gprod-s2", source: "gate-product-template", target: "stage-2-template", type: "custom" },
+      { id: "e-s2-ga", source: "stage-2-template", target: "gate-architecture-template", type: "custom" },
+      { id: "e-ga-s3", source: "gate-architecture-template", target: "stage-3-template", type: "custom" },
+      { id: "e-s3-gproduction", source: "stage-3-template", target: "gate-production-template", type: "custom" },
+      { id: "e-gproduction-s5", source: "gate-production-template", target: "stage-5-template", type: "custom" },
+      { id: "e-s5-gr", source: "stage-5-template", target: "gate-release-template", type: "custom" },
+      { id: "e-gr-s6", source: "gate-release-template", target: "stage-6-template", type: "custom" },
+    ]
+
+    setNodes(templateNodes)
+    setEdges(templateEdges)
+    setIsTemplateMenuOpen(false)
+
+    toast({
+      title: "Seesaw Model loaded",
+      description: "The complete Seesaw Model template has been loaded",
+    })
+
+    // Fit view after loading
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 0.2 })
+      }
+    }, 100)
   }
 
   const onConnect = useCallback(
@@ -408,6 +517,44 @@ export default function WorkflowBuilder() {
               <Zap className="h-4 w-4 mr-1.5" />
               Run
             </Button>
+
+            <div className="relative">
+              <Button
+                onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+                size="sm"
+                variant="outline"
+                className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                  isDarkMode
+                    ? "bg-transparent hover:bg-teal-500/10 text-teal-400 border-teal-500/50 hover:border-teal-500"
+                    : "bg-transparent hover:bg-teal-500/10 text-teal-600 border-teal-500"
+                }`}
+              >
+                <LayoutTemplate className="h-4 w-4 mr-1.5" />
+                Template
+              </Button>
+              
+              {isTemplateMenuOpen && (
+                <div className={`absolute top-full left-0 mt-2 w-48 rounded-lg shadow-xl border z-50 ${
+                  isDarkMode
+                    ? "bg-[#1a1a2e] border-white/10"
+                    : "bg-white border-gray-200"
+                }`}>
+                  <button
+                    onClick={loadSeesawTemplate}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      isDarkMode
+                        ? "hover:bg-[#f26522]/10 text-white"
+                        : "hover:bg-gray-100 text-gray-900"
+                    }`}
+                  >
+                    <div className="font-medium">Seesaw Model</div>
+                    <div className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Complete workflow with all stages and gates
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <Button
               onClick={() => setIsSettingsOpen(true)}
