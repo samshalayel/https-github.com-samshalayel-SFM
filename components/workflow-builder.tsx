@@ -126,10 +126,11 @@ export default function WorkflowBuilder() {
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
 
   const loadSeesawTemplate = () => {
+    console.log("[v0] loadSeesawTemplate called")
     // Define the Seesaw Model template
     // Stage 0 → Problem Gate → Stage 1 → Product Gate → Stage 2 → Architecture Gate → Stage 3 → Production Gate → Stage 5 → Release Gate → Stage 6
     
-    const templateNodes = [
+    const templateNodes: any[] = [
       // Stage 0
       {
         id: "stage-0-template",
@@ -142,7 +143,7 @@ export default function WorkflowBuilder() {
         id: "gate-problem-template",
         type: "gate-problem",
         position: { x: 300, y: 200 },
-        data: { label: "Problem Gate", displayName: "Problem Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only" },
+        data: { label: "Problem Gate", displayName: "Problem Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only", gateType: "problem" },
       },
       // Stage 1
       {
@@ -156,7 +157,7 @@ export default function WorkflowBuilder() {
         id: "gate-product-template",
         type: "gate-product",
         position: { x: 800, y: 200 },
-        data: { label: "Product Gate", displayName: "Product Gate", humanPercentage: 95, aiPercentage: 5, authority: "Human" },
+        data: { label: "Product Gate", displayName: "Product Gate", humanPercentage: 95, aiPercentage: 5, authority: "Human", gateType: "product" },
       },
       // Stage 2
       {
@@ -170,7 +171,7 @@ export default function WorkflowBuilder() {
         id: "gate-architecture-template",
         type: "gate-architecture",
         position: { x: 1300, y: 200 },
-        data: { label: "Architecture Gate", displayName: "Architecture Gate", humanPercentage: 90, aiPercentage: 10, authority: "Human" },
+        data: { label: "Architecture Gate", displayName: "Architecture Gate", humanPercentage: 90, aiPercentage: 10, authority: "Human", gateType: "architecture" },
       },
       // Stage 3
       {
@@ -184,7 +185,7 @@ export default function WorkflowBuilder() {
         id: "gate-production-template",
         type: "gate-production",
         position: { x: 1800, y: 200 },
-        data: { label: "Production Gate", displayName: "Production Gate", humanPercentage: 70, aiPercentage: 30, authority: "Human + AI" },
+        data: { label: "Production Gate", displayName: "Production Gate", humanPercentage: 70, aiPercentage: 30, authority: "Human + AI", gateType: "production" },
       },
       // Stage 5
       {
@@ -198,7 +199,7 @@ export default function WorkflowBuilder() {
         id: "gate-release-template",
         type: "gate-release",
         position: { x: 2300, y: 200 },
-        data: { label: "Release Gate", displayName: "Release Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only" },
+        data: { label: "Release Gate", displayName: "Release Gate", humanPercentage: 100, aiPercentage: 0, authority: "Human Only", gateType: "release" },
       },
       // Stage 6
       {
@@ -209,7 +210,7 @@ export default function WorkflowBuilder() {
       },
     ]
 
-    const templateEdges = [
+    const templateEdges: any[] = [
       { id: "e-s0-gp", source: "stage-0-template", target: "gate-problem-template", type: "custom" },
       { id: "e-gp-s1", source: "gate-problem-template", target: "stage-1-template", type: "custom" },
       { id: "e-s1-gprod", source: "stage-1-template", target: "gate-product-template", type: "custom" },
@@ -222,6 +223,9 @@ export default function WorkflowBuilder() {
       { id: "e-gr-s6", source: "gate-release-template", target: "stage-6-template", type: "custom" },
     ]
 
+    console.log("[v0] Setting nodes:", templateNodes.length)
+    console.log("[v0] Setting edges:", templateEdges.length)
+
     setNodes(templateNodes)
     setEdges(templateEdges)
     setIsTemplateMenuOpen(false)
@@ -233,6 +237,7 @@ export default function WorkflowBuilder() {
 
     // Fit view after loading
     setTimeout(() => {
+      console.log("[v0] Fitting view, reactFlowInstance:", !!reactFlowInstance)
       if (reactFlowInstance) {
         reactFlowInstance.fitView({ padding: 0.2 })
       }
