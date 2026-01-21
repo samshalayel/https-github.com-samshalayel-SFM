@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Layers, Shield } from "lucide-react"
+import { Layers, Shield, Lightbulb, CheckCircle2, Compass, Link2 } from "lucide-react"
 import SeesawIcon from "./seesaw-icon"
 
 interface NodeLibraryProps {
@@ -39,21 +39,93 @@ export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
         </p>
       </div>
 
-      {/* Generic Gate Node */}
+      {/* Insight Node */}
+      <div
+        className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all duration-200"
+        draggable
+        onDragStart={(e) => onDragStart(e, "insight-node", "Insight")}
+      >
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-white" />
+            <span className="font-semibold text-sm text-white">Insight</span>
+          </div>
+          <span className="text-xs text-white/80">Analysis Only</span>
+        </div>
+        <p className="text-center text-xs text-white/80 leading-relaxed">
+          Generates understanding, not decisions
+        </p>
+      </div>
+
+      {/* Outcome Node */}
+      <div
+        className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-green-500/20 hover:scale-[1.02] transition-all duration-200"
+        draggable
+        onDragStart={(e) => onDragStart(e, "outcome-node", "Outcome")}
+      >
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-white" />
+            <span className="font-semibold text-sm text-white">Outcome</span>
+          </div>
+          <span className="text-xs text-white/80">H:80%+ AI:20%-</span>
+        </div>
+        <p className="text-center text-xs text-white/80 leading-relaxed">
+          Validated outcomes from insights
+        </p>
+      </div>
+
+      {/* Direction Node */}
+      <div
+        className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.02] transition-all duration-200"
+        draggable
+        onDragStart={(e) => onDragStart(e, "direction-node", "Direction")}
+      >
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20">
+          <div className="flex items-center gap-2">
+            <Compass className="h-5 w-5 text-white" />
+            <span className="font-semibold text-sm text-white">Direction</span>
+          </div>
+          <span className="text-xs text-white/80">H:90%+ AI:10%-</span>
+        </div>
+        <p className="text-center text-xs text-white/80 leading-relaxed">
+          WHERE to go, not HOW
+        </p>
+      </div>
+
+      {/* Blocking Gate Node */}
       <div
         className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-red-500/20 hover:scale-[1.02] transition-all duration-200"
         draggable
-        onDragStart={(e) => onDragStart(e, "gate-problem", "Gate")}
+        onDragStart={(e) => onDragStart(e, "gate-problem", "Blocking Gate")}
       >
         <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-white" />
-            <span className="font-semibold text-sm text-white">Gate</span>
+            <span className="font-semibold text-sm text-white">Blocking Gate</span>
           </div>
-          <span className="text-xs text-white/80">Human Quality Gate</span>
+          <span className="text-xs text-white/80">Requires Approval</span>
         </div>
         <p className="text-center text-xs text-white/80 leading-relaxed">
-          AI may advise. Only humans sign.
+          Prevents moving forward without human sign-off
+        </p>
+      </div>
+
+      {/* Alignment Gate Node */}
+      <div
+        className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-amber-500/20 hover:scale-[1.02] transition-all duration-200 border-2 border-dashed border-white/30"
+        draggable
+        onDragStart={(e) => onDragStart(e, "alignment-gate", "Alignment Gate")}
+      >
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-dashed border-white/20">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-white" />
+            <span className="font-semibold text-sm text-white">Alignment</span>
+          </div>
+          <span className="text-xs text-white/80">Non-Blocking</span>
+        </div>
+        <p className="text-center text-xs text-white/80 leading-relaxed">
+          Justification check, does not block flow
         </p>
       </div>
     </div>

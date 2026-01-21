@@ -57,6 +57,10 @@ import Stage4Node from "./nodes/stage-4-node"
 import Stage5Node from "./nodes/stage-5-node"
 import Stage6Node from "./nodes/stage-6-node"
 import GateNode from "./nodes/gate-node"
+import InsightNode from "./nodes/insight-node"
+import OutcomeNode from "./nodes/outcome-node"
+import DirectionNode from "./nodes/direction-node"
+import AlignmentGateNode from "./nodes/alignment-gate-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
@@ -94,6 +98,10 @@ const nodeTypes: NodeTypes = {
   "gate-architecture": GateNode,
   "gate-production": GateNode,
   "gate-release": GateNode,
+  "insight-node": InsightNode,
+  "outcome-node": OutcomeNode,
+  "direction-node": DirectionNode,
+  "alignment-gate": AlignmentGateNode,
 }
 
 const edgeTypes: EdgeTypes = {
@@ -308,6 +316,144 @@ export default function WorkflowBuilder() {
     toast({
       title: "Seesaw Model loaded",
       description: "The complete Seesaw Model template has been loaded",
+    })
+
+    // Fit view after loading
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 0.2 })
+      }
+    }, 100)
+  }
+
+  const loadInsightDiscoveryTemplate = () => {
+    // Insight-Driven Product Discovery template
+    // Problem Gate → Behavior → Sentiment → JTBD → Assumptions → Consolidation → Stage 1
+    
+    const templateNodes: any[] = [
+      // Problem Gate (starting point)
+      {
+        id: "gate-problem-insight",
+        type: "gate-problem",
+        position: { x: 50, y: 400 },
+        data: { 
+          label: "Problem Gate", 
+          description: "Validate problem before discovery",
+          humanPercentage: 100, 
+          aiPercentage: 0, 
+          decisionAuthority: "Human Only", 
+          gateType: "problem" 
+        },
+      },
+      // Consumer Behavior Analysis
+      {
+        id: "insight-behavior",
+        type: "insight-node",
+        position: { x: 350, y: 400 },
+        data: { 
+          label: "Consumer Behavior Analysis", 
+          description: "Analyze observed user behavior without proposing solutions",
+          humanPercentage: 60, 
+          aiPercentage: 40,
+          insightType: "behavior"
+        },
+      },
+      // Sentiment & Opinion Analysis
+      {
+        id: "insight-sentiment",
+        type: "insight-node",
+        position: { x: 650, y: 400 },
+        data: { 
+          label: "Sentiment & Opinion Analysis", 
+          description: "Cluster emotions, trust signals, and expectation gaps",
+          humanPercentage: 55, 
+          aiPercentage: 45,
+          insightType: "sentiment"
+        },
+      },
+      // JTBD Signal Extraction
+      {
+        id: "insight-jtbd",
+        type: "insight-node",
+        position: { x: 950, y: 400 },
+        data: { 
+          label: "JTBD Signal Extraction", 
+          description: "Extract jobs users are trying to get done",
+          humanPercentage: 65, 
+          aiPercentage: 35,
+          insightType: "jtbd"
+        },
+      },
+      // Assumption Stress Test
+      {
+        id: "insight-assumptions",
+        type: "insight-node",
+        position: { x: 1250, y: 400 },
+        data: { 
+          label: "Assumption Stress Test", 
+          description: "Surface risky or unvalidated assumptions",
+          humanPercentage: 70, 
+          aiPercentage: 30,
+          insightType: "assumptions"
+        },
+      },
+      // Insight Consolidation
+      {
+        id: "insight-consolidation",
+        type: "insight-node",
+        position: { x: 1550, y: 400 },
+        data: { 
+          label: "Insight Consolidation", 
+          description: "Consolidate validated pains and priority tensions",
+          humanPercentage: 80, 
+          aiPercentage: 20,
+          insightType: "consolidation"
+        },
+      },
+      // Insight Validation Gate
+      {
+        id: "gate-insight-validation",
+        type: "gate-problem",
+        position: { x: 1850, y: 400 },
+        data: { 
+          label: "Insight Validation Gate", 
+          description: "Human validates that insights are sufficient to shape the product",
+          humanPercentage: 100, 
+          aiPercentage: 0, 
+          decisionAuthority: "Human Only", 
+          gateType: "insight-validation" 
+        },
+      },
+      // Stage 1 (ending point)
+      {
+        id: "stage-1-insight",
+        type: "stage-1",
+        position: { x: 2150, y: 400 },
+        data: { 
+          label: "Product Shape", 
+          description: "Translate validated insights into clear product boundaries",
+          humanPercentage: 80, 
+          aiPercentage: 20 
+        },
+      },
+    ]
+
+    const templateEdges: any[] = [
+      { id: "e-gp-behavior", source: "gate-problem-insight", target: "insight-behavior", type: "custom" },
+      { id: "e-behavior-sentiment", source: "insight-behavior", target: "insight-sentiment", type: "custom" },
+      { id: "e-sentiment-jtbd", source: "insight-sentiment", target: "insight-jtbd", type: "custom" },
+      { id: "e-jtbd-assumptions", source: "insight-jtbd", target: "insight-assumptions", type: "custom" },
+      { id: "e-assumptions-consolidation", source: "insight-assumptions", target: "insight-consolidation", type: "custom" },
+      { id: "e-consolidation-gate", source: "insight-consolidation", target: "gate-insight-validation", type: "custom" },
+      { id: "e-gate-s1", source: "gate-insight-validation", target: "stage-1-insight", type: "custom" },
+    ]
+
+    setNodes(templateNodes)
+    setEdges(templateEdges)
+
+    toast({
+      title: "Insight Discovery loaded",
+      description: "The Insight-Driven Product Discovery template has been loaded",
     })
 
     // Fit view after loading
@@ -634,6 +780,21 @@ export default function WorkflowBuilder() {
                     </div>
                   </div>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={loadInsightDiscoveryTemplate}
+                  className={`cursor-pointer ${
+                    isDarkMode
+                      ? "text-white hover:bg-[#f26522]/20 focus:bg-[#f26522]/20"
+                      : "text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  <div>
+                    <div className="font-medium">Insight Discovery</div>
+                    <div className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Insight-Driven Product Discovery flow
+                    </div>
+                  </div>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -768,9 +929,13 @@ export default function WorkflowBuilder() {
                     "gate-product": "#00ff00",
                     "gate-architecture": "#0000ff",
                     "gate-production": "#ffff00",
-                    "gate-release": "#00ffff",
-                  }
-                  return colors[node.type as string] || "#6366f1"
+"gate-release": "#00ffff",
+"insight-node": "#10b981",
+    "outcome-node": "#22c55e",
+    "direction-node": "#6366f1",
+    "alignment-gate": "#f59e0b",
+  }
+  return colors[node.type as string] || "#6366f1"
                 }}
               />
               {nodes.length === 0 && (
