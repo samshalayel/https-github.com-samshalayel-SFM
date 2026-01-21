@@ -175,7 +175,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                   handleChange("humanPercentage", clampedValue)
                   handleChange("aiPercentage", 100 - clampedValue)
                 }}
-                className="font-medium"
+                className="font-medium bg-gray-100 border-gray-300 text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -195,7 +195,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                   handleChange("aiPercentage", clampedValue)
                   handleChange("humanPercentage", 100 - clampedValue)
                 }}
-                className="font-medium"
+                className="font-medium bg-gray-100 border-gray-300 text-gray-900"
               />
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
               value={localData.label || ""}
               onChange={(e) => handleChange("label", e.target.value)}
               placeholder="Stage title"
-              className="font-medium"
+              className="font-medium bg-gray-100 border-gray-300 text-gray-900"
             />
           </div>
 
@@ -217,7 +217,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
               id="description"
               value={localData.description || ""}
               onChange={(e) => handleChange("description", e.target.value)}
-              className="h-20 resize-none"
+              className="h-20 resize-none bg-gray-100 border-gray-300 text-gray-900"
               placeholder="Define the real problem and context"
             />
           </div>
@@ -234,7 +234,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                     value={item}
                     onChange={(e) => updateListItem("humanResponsibilities", index, e.target.value)}
                     placeholder="Add human responsibility"
-                    className="flex-1"
+                    className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
                   />
                   <Button
                     variant="ghost"
@@ -250,7 +250,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 onClick={() => addItemToList("humanResponsibilities")}
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
+                className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 bg-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add
@@ -270,7 +270,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                     value={item}
                     onChange={(e) => updateListItem("aiResponsibilities", index, e.target.value)}
                     placeholder="Add AI responsibility"
-                    className="flex-1"
+                    className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
                   />
                   <Button
                     variant="ghost"
@@ -286,7 +286,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 onClick={() => addItemToList("aiResponsibilities")}
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed border-purple-300 text-purple-600 hover:bg-purple-50"
+                className="w-full border-dashed border-purple-300 text-purple-600 hover:bg-purple-50 bg-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add
@@ -306,7 +306,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                     value={item}
                     onChange={(e) => updateListItem("restrictions", index, e.target.value)}
                     placeholder="Add restriction"
-                    className="flex-1"
+                    className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
                   />
                   <Button
                     variant="ghost"
@@ -322,7 +322,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 onClick={() => addItemToList("restrictions")}
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed border-red-300 text-red-600 hover:bg-red-50"
+                className="w-full border-dashed border-red-300 text-red-600 hover:bg-red-50 bg-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add
@@ -339,13 +339,13 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                     value={key}
                     onChange={(e) => updateCustomFieldKey(key, e.target.value)}
                     placeholder="Field name"
-                    className="w-1/3"
+                    className="w-1/3 bg-gray-100 border-gray-300 text-gray-900"
                   />
                   <Input
                     value={value}
                     onChange={(e) => updateCustomFieldValue(key, e.target.value)}
                     placeholder="Field value"
-                    className="flex-1"
+                    className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
                   />
                   <Button
                     variant="ghost"
@@ -361,7 +361,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 onClick={addCustomField}
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed bg-transparent"
+                className="w-full border-dashed bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add

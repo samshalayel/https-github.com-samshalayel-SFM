@@ -36,9 +36,16 @@ export default function CustomEdge({
     [setEdges],
   )
 
+  // Enhanced edge style for better visibility in light mode
+  const enhancedStyle = {
+    ...style,
+    strokeWidth: 3,
+    stroke: style?.stroke || '#64748b', // slate-500 for light mode visibility
+  }
+
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={enhancedStyle} />
       <EdgeLabelRenderer>
         {data?.label && (
           <div
