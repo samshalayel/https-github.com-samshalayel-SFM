@@ -1179,7 +1179,12 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
           <>
             <div className="space-y-2">
               <Label htmlFor="label">Node Label</Label>
-              <Input id="label" value={localData.label || ""} onChange={(e) => handleChange("label", e.target.value)} />
+              <Input 
+                id="label" 
+                value={localData.label || ""} 
+                onChange={(e) => handleChange("label", e.target.value)} 
+                className="bg-gray-100 border-gray-300 text-gray-900"
+              />
             </div>
 
             <div className="space-y-2">
@@ -1189,6 +1194,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 value={localData.description || ""}
                 onChange={(e) => handleChange("description", e.target.value)}
                 placeholder="Describe what this node does"
+                className="bg-gray-100 border-gray-300 text-gray-900"
               />
             </div>
 
@@ -1210,7 +1216,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50">
-        <Button onClick={onClose} variant="outline" className="rounded-lg bg-transparent">
+        <Button onClick={onClose} variant="outline" className="rounded-lg bg-white border-gray-300 text-gray-700 hover:bg-gray-100">
           Cancel
         </Button>
         <Button

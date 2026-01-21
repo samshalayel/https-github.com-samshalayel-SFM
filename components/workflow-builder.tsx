@@ -120,6 +120,15 @@ export default function WorkflowBuilder() {
     }
   }, [])
 
+  // Apply light/dark class to document for global CSS variable switching
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("light")
+    } else {
+      document.documentElement.classList.add("light")
+    }
+  }, [isDarkMode])
+
   const toggleTheme = () => {
     const newMode = !isDarkMode
     setIsDarkMode(newMode)
