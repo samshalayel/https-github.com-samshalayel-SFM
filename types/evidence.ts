@@ -7,8 +7,8 @@ export interface Evidence {
   owner: string
   mandatory: boolean // true = Mandatory, false = Advisory
   description?: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 export interface NodeEvidenceLink {

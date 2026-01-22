@@ -64,6 +64,8 @@ import AlignmentGateNode from "./nodes/alignment-gate-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import SaveLoadDialog from "./save-load-dialog"
 import EvidenceRepository from "./evidence-repository"
 
@@ -111,6 +113,7 @@ const edgeTypes: EdgeTypes = {
 
 export default function WorkflowBuilder() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const router = useRouter()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -145,8 +148,11 @@ export default function WorkflowBuilder() {
     localStorage.setItem("sillar-theme", newMode ? "dark" : "light")
   }
 
-  const handleLogout = () => {
-    window.location.href = "https://cp.sillar.us/auth/login"
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/auth/login")
+    router.refresh()
   }
 
   const loadSeesawTemplate = () => {

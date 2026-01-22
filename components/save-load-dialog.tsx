@@ -1,16 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { X, Save, Download, FolderOpen, Trash2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { X, Save, Download, FolderOpen, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from "@/lib/supabase/client"
 
 interface SavedWorkflow {
+  id: string
   name: string
-  timestamp: string
-  nodes: any[]
-  edges: any[]
+  created_at: string
+  data: {
+    nodes: any[]
+    edges: any[]
+  }
 }
 
 interface SaveLoadDialogProps {
@@ -33,45 +37,103 @@ export default function SaveLoadDialog({
   isDarkMode = true,
 }: SaveLoadDialogProps) {
   const [workflowName, setWorkflowName] = useState("")
-  const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("savedWorkflows")
-      return saved ? JSON.parse(saved) : []
+  const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Load workflows from Supabase when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadWorkflows()
     }
-    return []
-  })
+  }, [isOpen])
+
+  const loadWorkflows = async () => {
+    setIsLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        console.error("No user found")
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("snapshots")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      setSavedWorkflows(data || [])
+    } catch (error) {
+      console.error("Error loading workflows:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (!isOpen) return null
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!workflowName.trim()) {
       alert("Please enter a workflow name")
       return
     }
 
-    const newWorkflow: SavedWorkflow = {
-      name: workflowName,
-      timestamp: new Date().toISOString(),
-      nodes: currentNodes,
-      edges: currentEdges,
-    }
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert("Please sign in to save workflows")
+        return
+      }
 
-    const updated = [...savedWorkflows, newWorkflow]
-    setSavedWorkflows(updated)
-    localStorage.setItem("savedWorkflows", JSON.stringify(updated))
-    setWorkflowName("")
-    onClose()
+      const { error } = await supabase
+        .from("snapshots")
+        .insert({
+          user_id: user.id,
+          name: workflowName,
+          data: {
+            nodes: currentNodes,
+            edges: currentEdges,
+          },
+        })
+
+      if (error) throw error
+
+      setWorkflowName("")
+      await loadWorkflows()
+      onClose()
+    } catch (error) {
+      console.error("Error saving workflow:", error)
+      alert("Failed to save workflow")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleLoad = (workflow: SavedWorkflow) => {
-    onLoad({ nodes: workflow.nodes, edges: workflow.edges })
+    onLoad({ nodes: workflow.data.nodes, edges: workflow.data.edges })
     onClose()
   }
 
-  const handleDelete = (index: number) => {
-    const updated = savedWorkflows.filter((_, i) => i !== index)
-    setSavedWorkflows(updated)
-    localStorage.setItem("savedWorkflows", JSON.stringify(updated))
+  const handleDelete = async (id: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("snapshots")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw error
+      setSavedWorkflows(savedWorkflows.filter(w => w.id !== id))
+    } catch (error) {
+      console.error("Error deleting workflow:", error)
+    }
   }
 
   const formatDate = (timestamp: string) => {
@@ -102,7 +164,7 @@ export default function SaveLoadDialog({
             <div>
               <h2 className="text-2xl font-bold">{mode === "save" ? "Save Workflow" : "Load Workflow"}</h2>
               <p className="text-indigo-100 text-sm mt-1">
-                {mode === "save" ? "Save your current workflow for later use" : "Choose a workflow to load"}
+                {mode === "save" ? "Save your workflow to cloud storage" : "Choose a workflow to load"}
               </p>
             </div>
           </div>
@@ -110,7 +172,11 @@ export default function SaveLoadDialog({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(70vh-180px)]">
-          {mode === "save" ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className={`h-8 w-8 animate-spin ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+            </div>
+          ) : mode === "save" ? (
             <div className="space-y-4">
               <div>
                 <Label
@@ -136,12 +202,12 @@ export default function SaveLoadDialog({
               {savedWorkflows.length > 0 && (
                 <div className="mt-6">
                   <h3 className={`text-sm font-semibold mb-3 ${isDarkMode ? "text-gray-400" : "text-gray-700"}`}>
-                    Previously Saved:
+                    Your Saved Workflows:
                   </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {savedWorkflows.map((workflow, index) => (
+                    {savedWorkflows.map((workflow) => (
                       <div
-                        key={index}
+                        key={workflow.id}
                         className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                           isDarkMode
                             ? "bg-[#1a1a1a] border-white/10 hover:bg-[#222]"
@@ -153,11 +219,11 @@ export default function SaveLoadDialog({
                             {workflow.name}
                           </p>
                           <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
-                            {formatDate(workflow.timestamp)}
+                            {formatDate(workflow.created_at)}
                           </p>
                         </div>
                         <Button
-                          onClick={() => handleDelete(index)}
+                          onClick={() => handleDelete(workflow.id)}
                           size="sm"
                           variant="ghost"
                           className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
@@ -184,9 +250,9 @@ export default function SaveLoadDialog({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {savedWorkflows.map((workflow, index) => (
+                  {savedWorkflows.map((workflow) => (
                     <div
-                      key={index}
+                      key={workflow.id}
                       className={`group flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer ${
                         isDarkMode
                           ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/10"
@@ -203,10 +269,10 @@ export default function SaveLoadDialog({
                             {workflow.name}
                           </p>
                           <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
-                            {formatDate(workflow.timestamp)}
+                            {formatDate(workflow.created_at)}
                           </p>
                           <p className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                            {workflow.nodes.length} stages, {workflow.edges.length} connections
+                            {workflow.data.nodes.length} stages, {workflow.data.edges.length} connections
                           </p>
                         </div>
                       </div>
@@ -214,7 +280,7 @@ export default function SaveLoadDialog({
                         <Button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDelete(index)
+                            handleDelete(workflow.id)
                           }}
                           size="sm"
                           variant="ghost"
@@ -249,10 +315,15 @@ export default function SaveLoadDialog({
             </Button>
             <Button
               onClick={handleSave}
+              disabled={isSaving}
               className="px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save Workflow
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isSaving ? "Saving..." : "Save Workflow"}
             </Button>
           </div>
         )}
