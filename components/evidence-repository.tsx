@@ -37,14 +37,13 @@ import {
   X
 } from "lucide-react"
 import type { Evidence, EvidenceType } from "@/types/evidence"
+import type { Node } from "reactflow"
 
 interface EvidenceRepositoryProps {
   isOpen: boolean
   onClose: () => void
-  evidence: Evidence[]
-  onAddEvidence: (evidence: Omit<Evidence, "id" | "createdAt" | "updatedAt">) => void
-  onDeleteEvidence: (id: string) => void
-  onUpdateEvidence: (id: string, updates: Partial<Evidence>) => void
+  nodes: Node[]
+  isDarkMode: boolean
 }
 
 const evidenceTypeIcons: Record<EvidenceType, React.ReactNode> = {
@@ -66,11 +65,10 @@ const evidenceTypeColors: Record<EvidenceType, string> = {
 export default function EvidenceRepository({
   isOpen,
   onClose,
-  evidence,
-  onAddEvidence,
-  onDeleteEvidence,
-  onUpdateEvidence,
+  nodes,
+  isDarkMode,
 }: EvidenceRepositoryProps) {
+  const [evidence, setEvidence] = useState<Evidence[]>([])
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<EvidenceType | "all">("all")
@@ -87,7 +85,14 @@ export default function EvidenceRepository({
   const handleAddEvidence = () => {
     if (!newEvidence.name.trim() || !newEvidence.owner.trim()) return
     
-    onAddEvidence(newEvidence)
+    const newDoc: Evidence = {
+      id: `evidence-${Date.now()}`,
+      ...newEvidence,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    
+    setEvidence((prev) => [...prev, newDoc])
     setNewEvidence({
       name: "",
       type: "Policy",
@@ -98,12 +103,20 @@ export default function EvidenceRepository({
     setIsAddingNew(false)
   }
 
+  const handleDeleteEvidence = (id: string) => {
+    setEvidence((prev) => prev.filter((e) => e.id !== id))
+  }
+
   const filteredEvidence = evidence.filter((e) => {
     const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.owner.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = filterType === "all" || e.type === filterType
     return matchesSearch && matchesType
   })
+
+  const onDeleteEvidence = (id: string) => {
+    handleDeleteEvidence(id)
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>

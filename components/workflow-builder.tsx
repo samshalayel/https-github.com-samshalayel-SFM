@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate } from "lucide-react"
+import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -65,6 +65,7 @@ import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
 import SaveLoadDialog from "./save-load-dialog"
+import EvidenceRepository from "./evidence-repository"
 
 const nodeTypes: NodeTypes = {
   input: InputNode,
@@ -119,7 +120,8 @@ export default function WorkflowBuilder() {
   const [isSaveLoadOpen, setIsSaveLoadOpen] = useState(false)
   const [saveLoadMode, setSaveLoadMode] = useState<"save" | "load">("save")
   const [isDarkMode, setIsDarkMode] = useState(true)
-  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false) // Declare setIsTemplateMenuOpen
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
+  const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -799,6 +801,20 @@ export default function WorkflowBuilder() {
             </DropdownMenu>
 
             <Button
+              onClick={() => setIsEvidenceOpen(true)}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:border-cyan-500"
+                  : "bg-transparent hover:bg-cyan-500/10 text-cyan-600 border-cyan-500"
+              }`}
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              Evidence
+            </Button>
+
+            <Button
               onClick={() => setIsSettingsOpen(true)}
               size="sm"
               variant="outline"
@@ -990,6 +1006,13 @@ export default function WorkflowBuilder() {
         currentNodes={nodes}
         currentEdges={edges}
         onLoad={handleLoadWorkflow}
+        isDarkMode={isDarkMode}
+      />
+
+      <EvidenceRepository
+        isOpen={isEvidenceOpen}
+        onClose={() => setIsEvidenceOpen(false)}
+        nodes={nodes}
         isDarkMode={isDarkMode}
       />
     </div>
