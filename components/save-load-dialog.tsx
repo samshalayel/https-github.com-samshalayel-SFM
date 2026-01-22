@@ -130,8 +130,16 @@ export default function SaveLoadDialog({
   }
 
   const handleLoad = (workflow: SavedWorkflow) => {
-    onLoad({ nodes: workflow.data.nodes, edges: workflow.data.edges })
-    onClose()
+    try {
+      const data = workflow.data || {}
+      const nodes = Array.isArray(data.nodes) ? data.nodes : []
+      const edges = Array.isArray(data.edges) ? data.edges : []
+      onLoad({ nodes, edges })
+      onClose()
+    } catch (error) {
+      console.log("[v0] Error loading workflow data:", error)
+      alert("Failed to load workflow - invalid data format")
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -288,7 +296,7 @@ export default function SaveLoadDialog({
                             {formatDate(workflow.created_at)}
                           </p>
                           <p className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                            {workflow.data.nodes.length} stages, {workflow.data.edges.length} connections
+                            {workflow.data?.nodes?.length || 0} stages, {workflow.data?.edges?.length || 0} connections
                           </p>
                         </div>
                       </div>
