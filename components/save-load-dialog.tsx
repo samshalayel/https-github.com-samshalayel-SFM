@@ -52,23 +52,32 @@ export default function SaveLoadDialog({
     setIsLoading(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       
-      if (!user) {
-        console.error("No user found")
+      // Get user with error handling
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !userData?.user) {
+        console.log("[v0] No user found or error:", userError?.message)
+        setSavedWorkflows([])
         return
       }
 
       const { data, error } = await supabase
         .from("snapshots")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userData.user.id)
         .order("created_at", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.log("[v0] Error fetching snapshots:", error.message)
+        setSavedWorkflows([])
+        return
+      }
+      
       setSavedWorkflows(data || [])
-    } catch (error) {
-      console.error("Error loading workflows:", error)
+    } catch (error: any) {
+      console.log("[v0] Error loading workflows:", error?.message || error)
+      setSavedWorkflows([])
     } finally {
       setIsLoading(false)
     }
@@ -85,9 +94,10 @@ export default function SaveLoadDialog({
     setIsSaving(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: userData, error: userError } = await supabase.auth.getUser()
       
-      if (!user) {
+      if (userError || !userData?.user) {
+        console.log("[v0] No user found for save:", userError?.message)
         alert("Please sign in to save workflows")
         return
       }
@@ -95,7 +105,7 @@ export default function SaveLoadDialog({
       const { error } = await supabase
         .from("snapshots")
         .insert({
-          user_id: user.id,
+          user_id: userData.user.id,
           name: workflowName,
           data: {
             nodes: currentNodes,
@@ -103,13 +113,16 @@ export default function SaveLoadDialog({
           },
         })
 
-      if (error) throw error
+      if (error) {
+        console.log("[v0] Error saving snapshot:", error.message)
+        throw error
+      }
 
       setWorkflowName("")
       await loadWorkflows()
       onClose()
-    } catch (error) {
-      console.error("Error saving workflow:", error)
+    } catch (error: any) {
+      console.log("[v0] Error saving workflow:", error?.message || error)
       alert("Failed to save workflow")
     } finally {
       setIsSaving(false)
@@ -129,10 +142,13 @@ export default function SaveLoadDialog({
         .delete()
         .eq("id", id)
 
-      if (error) throw error
+      if (error) {
+        console.log("[v0] Error deleting workflow:", error.message)
+        return
+      }
       setSavedWorkflows(savedWorkflows.filter(w => w.id !== id))
-    } catch (error) {
-      console.error("Error deleting workflow:", error)
+    } catch (error: any) {
+      console.log("[v0] Error deleting workflow:", error?.message || error)
     }
   }
 
