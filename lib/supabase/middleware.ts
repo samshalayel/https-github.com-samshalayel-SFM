@@ -42,20 +42,22 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
 
+  // Auth pages should be accessible without login
+  const isAuthPage = request.nextUrl.pathname.startsWith("/auth/")
+  
   // Protected paths that require authentication
-  const protectedPaths = ["/"]
-  const isProtectedPath = protectedPaths.some(
-    (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith("/builder")
-  )
+  const isProtectedPath = request.nextUrl.pathname === "/" || 
+    request.nextUrl.pathname.startsWith("/builder")
 
+  // If trying to access protected path without user, redirect to login
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/login"
     return NextResponse.redirect(url)
   }
 
-  // Redirect logged-in users away from auth pages
-  if (request.nextUrl.pathname.startsWith("/auth/") && user) {
+  // If logged in user tries to access auth pages, redirect to home
+  if (isAuthPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     return NextResponse.redirect(url)
