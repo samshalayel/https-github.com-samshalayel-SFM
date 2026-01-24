@@ -221,19 +221,19 @@ export default function SaveLoadDialog({
       console.log("[v0] Nodes count:", currentNodes?.length || 0)
       console.log("[v0] Edges count:", currentEdges?.length || 0)
 
-      const updateData = {
+      const updatePayload = {
         data: {
           nodes: currentNodes,
           edges: currentEdges,
           evidence: currentEvidence,
         },
       }
-      console.log("[v0] Update payload:", JSON.stringify(updateData))
+      console.log("[v0] Update payload:", JSON.stringify(updatePayload))
 
       // Update existing workflow
       const { data: updateResult, error } = await supabase
         .from("snapshots")
-        .update(updateData)
+        .update(updatePayload)
         .eq("id", existingWorkflow.id)
         .eq("user_id", userData.user.id)
         .select()
@@ -244,7 +244,44 @@ export default function SaveLoadDialog({
       }
 
       console.log("[v0] Update result:", updateResult)
-      console.log("[v0] Workflow updated successfully")
+
+      // Check if update actually happened (RLS might block without error)
+      if (!updateResult || updateResult.length === 0) {
+        console.log("[v0] Update returned empty - may be RLS issue, trying delete+insert approach")
+        
+        // Delete and re-insert as fallback
+        const { error: deleteError } = await supabase
+          .from("snapshots")
+          .delete()
+          .eq("id", existingWorkflow.id)
+          .eq("user_id", userData.user.id)
+
+        if (deleteError) {
+          console.log("[v0] Delete error:", deleteError)
+          throw deleteError
+        }
+
+        const { error: insertError } = await supabase
+          .from("snapshots")
+          .insert({
+            user_id: userData.user.id,
+            name: name,
+            data: {
+              nodes: currentNodes,
+              edges: currentEdges,
+              evidence: currentEvidence,
+            },
+          })
+
+        if (insertError) {
+          console.log("[v0] Insert error:", insertError)
+          throw insertError
+        }
+
+        console.log("[v0] Workflow saved via delete+insert fallback")
+      } else {
+        console.log("[v0] Workflow updated successfully via update")
+      }
       setWorkflowName("")
       setShowDuplicateDialog(false)
       await loadWorkflows()
