@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Save, Download, FolderOpen, Trash2, Loader2 } from "lucide-react"
+import { X, Save, Download, FolderOpen, Trash2, Loader2, Copy, Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,8 @@ interface SaveLoadDialogProps {
   isDarkMode?: boolean
 }
 
+type DuplicateAction = "version" | "rename" | null
+
 export default function SaveLoadDialog({
   isOpen,
   onClose,
@@ -45,6 +47,9 @@ export default function SaveLoadDialog({
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false)
+  const [duplicateName, setDuplicateName] = useState("")
+  const [suggestedVersionName, setSuggestedVersionName] = useState("")
 
   // Load workflows from Supabase when dialog opens
   useEffect(() => {
@@ -88,6 +93,44 @@ export default function SaveLoadDialog({
     }
   }
 
+  // Helper function to generate next version name
+  const getNextVersionName = (baseName: string): string => {
+    // Check if name already has a version suffix like .v1, .v2, etc.
+    const versionMatch = baseName.match(/^(.+)\.v(\d+)$/)
+    
+    let baseNameWithoutVersion: string
+    if (versionMatch) {
+      baseNameWithoutVersion = versionMatch[1]
+    } else {
+      baseNameWithoutVersion = baseName
+    }
+    
+    // Find all existing versions of this workflow
+    const existingVersions = savedWorkflows
+      .filter(w => {
+        const match = w.name.match(/^(.+)\.v(\d+)$/)
+        if (match) {
+          return match[1] === baseNameWithoutVersion
+        }
+        return w.name === baseNameWithoutVersion
+      })
+      .map(w => {
+        const match = w.name.match(/^(.+)\.v(\d+)$/)
+        if (match) {
+          return parseInt(match[2], 10)
+        }
+        return 0 // Original has version 0
+      })
+    
+    const maxVersion = existingVersions.length > 0 ? Math.max(...existingVersions) : 0
+    return `${baseNameWithoutVersion}.v${maxVersion + 1}`
+  }
+
+  // Check if workflow name already exists
+  const checkNameExists = (name: string): boolean => {
+    return savedWorkflows.some(w => w.name.toLowerCase() === name.toLowerCase())
+  }
+
   if (!isOpen) return null
 
   const handleSave = async () => {
@@ -96,13 +139,24 @@ export default function SaveLoadDialog({
       return
     }
 
+    // Check if name already exists
+    if (checkNameExists(workflowName.trim())) {
+      setDuplicateName(workflowName.trim())
+      setSuggestedVersionName(getNextVersionName(workflowName.trim()))
+      setShowDuplicateDialog(true)
+      return
+    }
+
+    await saveWorkflow(workflowName.trim())
+  }
+
+  const saveWorkflow = async (name: string) => {
     setIsSaving(true)
     try {
       const supabase = createClient()
       const { data: userData, error: userError } = await supabase.auth.getUser()
       
       if (userError || !userData?.user) {
-        console.log("[v0] No user found for save:", userError?.message)
         alert("Please sign in to save workflows")
         return
       }
@@ -111,7 +165,7 @@ export default function SaveLoadDialog({
         .from("snapshots")
         .insert({
           user_id: userData.user.id,
-          name: workflowName,
+          name: name,
           data: {
             nodes: currentNodes,
             edges: currentEdges,
@@ -120,18 +174,26 @@ export default function SaveLoadDialog({
         })
 
       if (error) {
-        console.log("[v0] Error saving snapshot:", error.message)
         throw error
       }
 
       setWorkflowName("")
+      setShowDuplicateDialog(false)
       await loadWorkflows()
       onClose()
     } catch (error: any) {
-      console.log("[v0] Error saving workflow:", error?.message || error)
       alert("Failed to save workflow")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDuplicateAction = async (action: DuplicateAction) => {
+    if (action === "version") {
+      await saveWorkflow(suggestedVersionName)
+    } else if (action === "rename") {
+      setShowDuplicateDialog(false)
+      // Focus will return to the input field for user to change the name
     }
   }
 
@@ -176,6 +238,110 @@ export default function SaveLoadDialog({
 
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString()
+  }
+
+  // Duplicate Name Dialog
+  if (showDuplicateDialog) {
+    return (
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${
+          isDarkMode ? "bg-black/60" : "bg-black/50"
+        }`}
+      >
+        <div
+          className={`rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border ${
+            isDarkMode ? "bg-[#111111] border-white/10" : "bg-white border-gray-200"
+          }`}
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-5 text-white">
+            <div className="flex items-center gap-3">
+              <Copy className="h-6 w-6" />
+              <div>
+                <h2 className="text-xl font-bold">Name Already Exists</h2>
+                <p className="text-amber-100 text-sm mt-1">
+                  A workflow named "{duplicateName}" already exists
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-4">
+            <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+              Choose how you want to save this workflow:
+            </p>
+
+            {/* Option 1: Save as Version */}
+            <button
+              onClick={() => handleDuplicateAction("version")}
+              disabled={isSaving}
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                isDarkMode
+                  ? "border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 hover:border-indigo-500/50"
+                  : "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-300"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg ${isDarkMode ? "bg-indigo-500/20" : "bg-indigo-100"}`}>
+                  <Copy className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div className="flex-1">
+                  <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                    Save as New Version
+                  </p>
+                  <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    Save as: <span className="font-mono text-indigo-500">{suggestedVersionName}</span>
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Option 2: Choose New Name */}
+            <button
+              onClick={() => handleDuplicateAction("rename")}
+              disabled={isSaving}
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                isDarkMode
+                  ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                  : "border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg ${isDarkMode ? "bg-white/10" : "bg-gray-100"}`}>
+                  <Edit3 className="h-5 w-5 text-gray-500" />
+                </div>
+                <div className="flex-1">
+                  <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                    Choose Different Name
+                  </p>
+                  <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    Go back and enter a new unique name
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div
+            className={`border-t p-4 flex justify-end ${
+              isDarkMode ? "border-white/10 bg-[#0a0a0a]/50" : "border-gray-200 bg-gray-50"
+            }`}
+          >
+            <Button
+              onClick={() => setShowDuplicateDialog(false)}
+              variant="outline"
+              className={`px-4 ${
+                isDarkMode ? "bg-transparent border-white/10 text-gray-300 hover:bg-white/10" : "bg-transparent"
+              }`}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
