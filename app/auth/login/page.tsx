@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -18,64 +19,6 @@ function GoogleIcon() {
       <path d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.33z" fill="#FBBC05"/>
       <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.002 0A8.997 8.997 0 0 0 .96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
     </svg>
-  )
-}
-
-function AnalyticsIllustration() {
-  return (
-    <div className="relative w-64 h-64">
-      {/* Binary code flowing upward */}
-      <div className="absolute top-0 right-0 text-[10px] font-mono text-cyan-400/60 leading-tight">
-        <div className="animate-pulse">01001 0101</div>
-        <div className="animate-pulse delay-100">10110 1101</div>
-        <div className="animate-pulse delay-200">01101 0110</div>
-      </div>
-      
-      {/* Main container shape */}
-      <svg viewBox="0 0 200 200" className="w-full h-full">
-        {/* Background shape */}
-        <defs>
-          <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3B82F6" />
-            <stop offset="100%" stopColor="#1E40AF" />
-          </linearGradient>
-          <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F97316" />
-            <stop offset="100%" stopColor="#EA580C" />
-          </linearGradient>
-          <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FBBF24" />
-            <stop offset="100%" stopColor="#F59E0B" />
-          </linearGradient>
-          <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#22D3EE" />
-            <stop offset="100%" stopColor="#06B6D4" />
-          </linearGradient>
-        </defs>
-        
-        {/* Blue folder/container shape */}
-        <path d="M40 80 L40 160 Q40 170 50 170 L150 170 Q160 170 160 160 L160 80 Q160 70 150 70 L100 70 L90 55 L50 55 Q40 55 40 65 Z" fill="url(#blueGrad)" opacity="0.9"/>
-        
-        {/* Bar chart */}
-        <rect x="55" y="130" width="15" height="30" rx="2" fill="url(#cyanGrad)"/>
-        <rect x="80" y="110" width="15" height="50" rx="2" fill="url(#yellowGrad)"/>
-        <rect x="105" y="95" width="15" height="65" rx="2" fill="url(#orangeGrad)"/>
-        
-        {/* Gear/cog icon */}
-        <circle cx="140" cy="130" r="20" fill="#1E3A5F" stroke="#F97316" strokeWidth="3"/>
-        <circle cx="140" cy="130" r="8" fill="#0F172A"/>
-        <g stroke="#F97316" strokeWidth="3">
-          <line x1="140" y1="105" x2="140" y2="115"/>
-          <line x1="140" y1="145" x2="140" y2="155"/>
-          <line x1="115" y1="130" x2="125" y2="130"/>
-          <line x1="155" y1="130" x2="165" y2="130"/>
-          <line x1="122" y1="112" x2="129" y2="119"/>
-          <line x1="151" y1="141" x2="158" y2="148"/>
-          <line x1="122" y1="148" x2="129" y2="141"/>
-          <line x1="151" y1="119" x2="158" y2="112"/>
-        </g>
-      </svg>
-    </div>
   )
 }
 
@@ -225,8 +168,15 @@ export default function LoginPage() {
       {/* Right Side - Branding */}
       <div className="hidden w-1/2 flex-col items-center justify-center bg-[#0f0f1a] px-12 lg:flex">
         <div className="flex flex-col items-center text-center">
-          {/* Illustration */}
-          <AnalyticsIllustration />
+          {/* Company Logo */}
+          <Image
+            src="/company-logo.png"
+            alt="Company Logo"
+            width={280}
+            height={280}
+            className="object-contain"
+            priority
+          />
           
           {/* Title */}
           <h2 className="mt-8 text-3xl font-bold text-white">Contextual Analysis Workspace</h2>
