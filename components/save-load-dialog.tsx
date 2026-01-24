@@ -215,27 +215,35 @@ export default function SaveLoadDialog({
       }
 
       console.log("[v0] Overwriting workflow:", name)
+      console.log("[v0] Existing workflow ID:", existingWorkflow.id)
       console.log("[v0] Current Evidence being saved:", currentEvidence)
       console.log("[v0] Evidence count:", currentEvidence?.length || 0)
+      console.log("[v0] Nodes count:", currentNodes?.length || 0)
+      console.log("[v0] Edges count:", currentEdges?.length || 0)
+
+      const updateData = {
+        data: {
+          nodes: currentNodes,
+          edges: currentEdges,
+          evidence: currentEvidence,
+        },
+      }
+      console.log("[v0] Update payload:", JSON.stringify(updateData))
 
       // Update existing workflow
-      const { error } = await supabase
+      const { data: updateResult, error } = await supabase
         .from("snapshots")
-        .update({
-          data: {
-            nodes: currentNodes,
-            edges: currentEdges,
-            evidence: currentEvidence,
-          },
-        })
+        .update(updateData)
         .eq("id", existingWorkflow.id)
         .eq("user_id", userData.user.id)
+        .select()
 
       if (error) {
         console.log("[v0] Error updating workflow:", error)
         throw error
       }
 
+      console.log("[v0] Update result:", updateResult)
       console.log("[v0] Workflow updated successfully")
       setWorkflowName("")
       setShowDuplicateDialog(false)
