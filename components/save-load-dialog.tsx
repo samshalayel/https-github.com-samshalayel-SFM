@@ -54,9 +54,12 @@ export default function SaveLoadDialog({
   // Load workflows from Supabase when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log("[v0] Dialog opened - mode:", mode)
+      console.log("[v0] Current evidence in dialog:", currentEvidence)
+      console.log("[v0] Evidence count in dialog:", currentEvidence?.length || 0)
       loadWorkflows()
     }
-  }, [isOpen])
+  }, [isOpen, mode, currentEvidence])
 
   const loadWorkflows = async () => {
     setIsLoading(true)
@@ -212,27 +215,35 @@ export default function SaveLoadDialog({
       }
 
       console.log("[v0] Overwriting workflow:", name)
+      console.log("[v0] Existing workflow ID:", existingWorkflow.id)
       console.log("[v0] Current Evidence being saved:", currentEvidence)
       console.log("[v0] Evidence count:", currentEvidence?.length || 0)
+      console.log("[v0] Nodes count:", currentNodes?.length || 0)
+      console.log("[v0] Edges count:", currentEdges?.length || 0)
 
-      // Update existing workflow - also update updated_at timestamp
-      const { error } = await supabase
+      const updateData = {
+        data: {
+          nodes: currentNodes,
+          edges: currentEdges,
+          evidence: currentEvidence,
+        },
+      }
+      console.log("[v0] Update payload:", JSON.stringify(updateData))
+
+      // Update existing workflow
+      const { data: updateResult, error } = await supabase
         .from("snapshots")
-        .update({
-          data: {
-            nodes: currentNodes,
-            edges: currentEdges,
-            evidence: currentEvidence,
-          },
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", existingWorkflow.id)
+        .eq("user_id", userData.user.id)
+        .select()
 
       if (error) {
         console.log("[v0] Error updating workflow:", error)
         throw error
       }
 
+      console.log("[v0] Update result:", updateResult)
       console.log("[v0] Workflow updated successfully")
       setWorkflowName("")
       setShowDuplicateDialog(false)
@@ -264,10 +275,15 @@ export default function SaveLoadDialog({
       const edges = Array.isArray(data.edges) ? data.edges : []
       const evidenceData = Array.isArray(data.evidence) ? data.evidence : []
       
+      console.log("[v0] Loading workflow:", workflow.name)
+      console.log("[v0] Evidence in loaded workflow:", evidenceData)
+      console.log("[v0] Evidence count in loaded workflow:", evidenceData.length)
+      
       onLoad({ nodes, edges })
       
       // Always update evidence when loading - clear if no evidence exists, load if it does
       if (onLoadEvidence) {
+        console.log("[v0] Calling onLoadEvidence with:", evidenceData)
         onLoadEvidence(evidenceData)
       }
       
