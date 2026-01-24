@@ -179,16 +179,20 @@ export default function LoginPage() {
           />
           
           {/* Title */}
-          <h2 className="mt-8 text-3xl font-bold text-white">Contextual Analysis Workspace</h2>
+          <h2 className="mt-8 text-4xl font-bold tracking-wide text-white">SILLAR</h2>
           
           {/* Subtitle */}
-          <p className="mt-3 text-gray-400">Analyze your data smartly and easily</p>
+          <p className="mt-3 text-lg text-gray-400">AI-Powered Workflow Platform</p>
           
           {/* Feature badges */}
-          <div className="mt-8 flex items-center gap-6">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500"></div>
               <span className="text-sm text-gray-400">Drag & Drop</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-purple-500"></div>
+              <span className="text-sm text-gray-400">Templates</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-blue-500"></div>
