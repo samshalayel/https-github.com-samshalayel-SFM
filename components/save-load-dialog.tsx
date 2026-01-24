@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Save, Download, FolderOpen, Trash2, Loader2, Copy, Edit3 } from "lucide-react"
+import { X, Save, Download, FolderOpen, Trash2, Loader2, Copy, Edit3, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,7 +30,7 @@ interface SaveLoadDialogProps {
   isDarkMode?: boolean
 }
 
-type DuplicateAction = "version" | "rename" | null
+type DuplicateAction = "overwrite" | "version" | "rename" | null
 
 export default function SaveLoadDialog({
   isOpen,
@@ -188,8 +188,60 @@ export default function SaveLoadDialog({
     }
   }
 
+  // Overwrite existing workflow with same name
+  const overwriteWorkflow = async (name: string) => {
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !userData?.user) {
+        alert("Please sign in to save workflows")
+        return
+      }
+
+      // Find existing workflow with same name
+      const existingWorkflow = savedWorkflows.find(
+        w => w.name.toLowerCase() === name.toLowerCase()
+      )
+
+      if (!existingWorkflow) {
+        // If not found, just save as new
+        await saveWorkflow(name)
+        return
+      }
+
+      // Update existing workflow
+      const { error } = await supabase
+        .from("snapshots")
+        .update({
+          data: {
+            nodes: currentNodes,
+            edges: currentEdges,
+            evidence: currentEvidence,
+          },
+        })
+        .eq("id", existingWorkflow.id)
+
+      if (error) {
+        throw error
+      }
+
+      setWorkflowName("")
+      setShowDuplicateDialog(false)
+      await loadWorkflows()
+      onClose()
+    } catch (error: any) {
+      alert("Failed to update workflow")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleDuplicateAction = async (action: DuplicateAction) => {
-    if (action === "version") {
+    if (action === "overwrite") {
+      await overwriteWorkflow(duplicateName)
+    } else if (action === "version") {
       await saveWorkflow(suggestedVersionName)
     } else if (action === "rename") {
       setShowDuplicateDialog(false)
@@ -272,7 +324,32 @@ export default function SaveLoadDialog({
               Choose how you want to save this workflow:
             </p>
 
-            {/* Option 1: Save as Version */}
+            {/* Option 1: Overwrite Existing (Recommended) */}
+            <button
+              onClick={() => handleDuplicateAction("overwrite")}
+              disabled={isSaving}
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                isDarkMode
+                  ? "border-green-500/30 bg-green-500/10 hover:bg-green-500/20 hover:border-green-500/50"
+                  : "border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-300"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg ${isDarkMode ? "bg-green-500/20" : "bg-green-100"}`}>
+                  <RefreshCw className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex-1">
+                  <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                    Update Existing (Recommended)
+                  </p>
+                  <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    Replace "{duplicateName}" with the current workflow
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Option 2: Save as Version */}
             <button
               onClick={() => handleDuplicateAction("version")}
               disabled={isSaving}
