@@ -14,6 +14,7 @@ interface SavedWorkflow {
   data: {
     nodes: any[]
     edges: any[]
+    evidence?: any[]
   }
 }
 
@@ -23,7 +24,9 @@ interface SaveLoadDialogProps {
   mode: "save" | "load"
   currentNodes: any[]
   currentEdges: any[]
+  currentEvidence?: any[]
   onLoad: (workflow: { nodes: any[]; edges: any[] }) => void
+  onLoadEvidence?: (evidence: any[]) => void
   isDarkMode?: boolean
 }
 
@@ -33,7 +36,9 @@ export default function SaveLoadDialog({
   mode,
   currentNodes,
   currentEdges,
+  currentEvidence = [],
   onLoad,
+  onLoadEvidence,
   isDarkMode = true,
 }: SaveLoadDialogProps) {
   const [workflowName, setWorkflowName] = useState("")
@@ -110,6 +115,7 @@ export default function SaveLoadDialog({
           data: {
             nodes: currentNodes,
             edges: currentEdges,
+            evidence: currentEvidence,
           },
         })
 

@@ -69,6 +69,7 @@ import SettingsDialog from "./settings-dialog"
 import { createClient } from "@/lib/supabase/client"
 import SaveLoadDialog from "./save-load-dialog"
 import EvidenceRepository from "./evidence-repository"
+import type { Evidence } from "@/types/evidence"
 
 const nodeTypes: NodeTypes = {
   input: InputNode,
@@ -125,6 +126,7 @@ export default function WorkflowBuilder() {
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
+  const [evidence, setEvidence] = useState<Evidence[]>([])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -1010,7 +1012,9 @@ export default function WorkflowBuilder() {
         mode={saveLoadMode}
         currentNodes={nodes}
         currentEdges={edges}
+        currentEvidence={evidence}
         onLoad={handleLoadWorkflow}
+        onLoadEvidence={setEvidence}
         isDarkMode={isDarkMode}
       />
 
@@ -1019,6 +1023,8 @@ export default function WorkflowBuilder() {
         onClose={() => setIsEvidenceOpen(false)}
         nodes={nodes}
         isDarkMode={isDarkMode}
+        evidence={evidence}
+        setEvidence={setEvidence}
       />
     </div>
   )

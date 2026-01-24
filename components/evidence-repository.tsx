@@ -44,6 +44,8 @@ interface EvidenceRepositoryProps {
   onClose: () => void
   nodes: Node[]
   isDarkMode: boolean
+  evidence: Evidence[]
+  setEvidence: React.Dispatch<React.SetStateAction<Evidence[]>>
 }
 
 const evidenceTypeIcons: Record<EvidenceType, React.ReactNode> = {
@@ -67,8 +69,9 @@ export default function EvidenceRepository({
   onClose,
   nodes,
   isDarkMode,
+  evidence,
+  setEvidence,
 }: EvidenceRepositoryProps) {
-  const [evidence, setEvidence] = useState<Evidence[]>([])
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<EvidenceType | "all">("all")
