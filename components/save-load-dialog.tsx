@@ -54,9 +54,12 @@ export default function SaveLoadDialog({
   // Load workflows from Supabase when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log("[v0] Dialog opened - mode:", mode)
+      console.log("[v0] Current evidence in dialog:", currentEvidence)
+      console.log("[v0] Evidence count in dialog:", currentEvidence?.length || 0)
       loadWorkflows()
     }
-  }, [isOpen])
+  }, [isOpen, mode, currentEvidence])
 
   const loadWorkflows = async () => {
     setIsLoading(true)
@@ -215,7 +218,7 @@ export default function SaveLoadDialog({
       console.log("[v0] Current Evidence being saved:", currentEvidence)
       console.log("[v0] Evidence count:", currentEvidence?.length || 0)
 
-      // Update existing workflow - also update updated_at timestamp
+      // Update existing workflow
       const { error } = await supabase
         .from("snapshots")
         .update({
@@ -224,9 +227,9 @@ export default function SaveLoadDialog({
             edges: currentEdges,
             evidence: currentEvidence,
           },
-          updated_at: new Date().toISOString(),
         })
         .eq("id", existingWorkflow.id)
+        .eq("user_id", userData.user.id)
 
       if (error) {
         console.log("[v0] Error updating workflow:", error)
@@ -264,10 +267,15 @@ export default function SaveLoadDialog({
       const edges = Array.isArray(data.edges) ? data.edges : []
       const evidenceData = Array.isArray(data.evidence) ? data.evidence : []
       
+      console.log("[v0] Loading workflow:", workflow.name)
+      console.log("[v0] Evidence in loaded workflow:", evidenceData)
+      console.log("[v0] Evidence count in loaded workflow:", evidenceData.length)
+      
       onLoad({ nodes, edges })
       
       // Always update evidence when loading - clear if no evidence exists, load if it does
       if (onLoadEvidence) {
+        console.log("[v0] Calling onLoadEvidence with:", evidenceData)
         onLoadEvidence(evidenceData)
       }
       
