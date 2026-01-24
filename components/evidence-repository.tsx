@@ -34,8 +34,13 @@ import {
   Briefcase,
   FileSearch,
   Settings2,
-  X
+  X,
+  Upload,
+  File,
+  ExternalLink,
+  Loader2
 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 import type { Evidence, EvidenceType } from "@/types/evidence"
 import type { Node } from "reactflow"
 
@@ -75,6 +80,9 @@ export default function EvidenceRepository({
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<EvidenceType | "all">("all")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   
   // New evidence form state
   const [newEvidence, setNewEvidence] = useState({
@@ -85,25 +93,88 @@ export default function EvidenceRepository({
     description: "",
   })
 
-  const handleAddEvidence = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setUploadError(null)
+    
+    if (file) {
+      // Validate file type
+      if (file.type !== "application/pdf") {
+        setUploadError("Only PDF files are allowed")
+        setSelectedFile(null)
+        return
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError("File size must be less than 10MB")
+        setSelectedFile(null)
+        return
+      }
+      
+      setSelectedFile(file)
+    }
+  }
+
+  const handleAddEvidence = async () => {
     if (!newEvidence.name.trim() || !newEvidence.owner.trim()) return
     
-    const newDoc: Evidence = {
-      id: `evidence-${Date.now()}`,
-      ...newEvidence,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    setIsUploading(true)
+    setUploadError(null)
     
-    setEvidence((prev) => [...prev, newDoc])
-    setNewEvidence({
-      name: "",
-      type: "Policy",
-      owner: "",
-      mandatory: true,
-      description: "",
-    })
-    setIsAddingNew(false)
+    let fileUrl: string | undefined
+    let fileName: string | undefined
+    
+    try {
+      // Upload file if selected
+      if (selectedFile) {
+        const supabase = createClient()
+        const fileExt = selectedFile.name.split(".").pop()
+        const filePath = `evidence/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filePath, selectedFile)
+        
+        if (uploadError) {
+          console.log("[v0] Upload error:", uploadError)
+          throw new Error(uploadError.message)
+        }
+        
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("documents")
+          .getPublicUrl(filePath)
+        
+        fileUrl = urlData.publicUrl
+        fileName = selectedFile.name
+      }
+      
+      const newDoc: Evidence = {
+        id: `evidence-${Date.now()}`,
+        ...newEvidence,
+        fileUrl,
+        fileName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      
+      setEvidence((prev) => [...prev, newDoc])
+      setNewEvidence({
+        name: "",
+        type: "Policy",
+        owner: "",
+        mandatory: true,
+        description: "",
+      })
+      setSelectedFile(null)
+      setIsAddingNew(false)
+    } catch (error) {
+      console.log("[v0] Error adding evidence:", error)
+      setUploadError(error instanceof Error ? error.message : "Failed to upload file")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleDeleteEvidence = (id: string) => {
@@ -243,6 +314,59 @@ export default function EvidenceRepository({
                   />
                 </div>
 
+                {/* PDF Upload Field */}
+                <div>
+                  <Label htmlFor="file" className="text-gray-700">Attach PDF (Optional)</Label>
+                  <div className="mt-1">
+                    <label
+                      htmlFor="file"
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                        selectedFile 
+                          ? "border-green-400 bg-green-50" 
+                          : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+                      }`}
+                    >
+                      {selectedFile ? (
+                        <>
+                          <File className="h-5 w-5 text-green-600" />
+                          <span className="text-sm text-green-700 truncate max-w-[200px]">
+                            {selectedFile.name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setSelectedFile(null)
+                            }}
+                            className="h-6 w-6 p-0 ml-2 text-gray-500 hover:text-red-500"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm text-gray-500">
+                            Click to upload PDF (max 10MB)
+                          </span>
+                        </>
+                      )}
+                    </label>
+                    <input
+                      id="file"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                  {uploadError && (
+                    <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Switch
@@ -260,10 +384,17 @@ export default function EvidenceRepository({
 
                 <Button
                   onClick={handleAddEvidence}
-                  disabled={!newEvidence.name.trim() || !newEvidence.owner.trim()}
+                  disabled={!newEvidence.name.trim() || !newEvidence.owner.trim() || isUploading}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
-                  Add Document
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Add Document"
+                  )}
                 </Button>
               </div>
             </div>
@@ -307,6 +438,18 @@ export default function EvidenceRepository({
                         <p className="text-xs text-gray-500">Owner: {doc.owner}</p>
                         {doc.description && (
                           <p className="text-xs text-gray-600 mt-1 line-clamp-2">{doc.description}</p>
+                        )}
+                        {doc.fileUrl && (
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 mt-1"
+                          >
+                            <File className="h-3 w-3" />
+                            <span className="truncate max-w-[150px]">{doc.fileName || "View PDF"}</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
                         )}
                       </div>
                       <Button
