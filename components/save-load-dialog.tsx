@@ -140,7 +140,15 @@ export default function SaveLoadDialog({
       const data = workflow.data || {}
       const nodes = Array.isArray(data.nodes) ? data.nodes : []
       const edges = Array.isArray(data.edges) ? data.edges : []
+      const evidenceData = Array.isArray(data.evidence) ? data.evidence : []
+      
       onLoad({ nodes, edges })
+      
+      // Load evidence if callback is provided and evidence data exists
+      if (onLoadEvidence && evidenceData.length > 0) {
+        onLoadEvidence(evidenceData)
+      }
+      
       onClose()
     } catch (error) {
       console.log("[v0] Error loading workflow data:", error)
