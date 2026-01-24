@@ -25,7 +25,7 @@ interface SaveLoadDialogProps {
   currentNodes: any[]
   currentEdges: any[]
   currentEvidence?: any[]
-  onLoad: (workflow: { nodes: any[]; edges: any[] }) => void
+  onLoad: (workflow: { nodes: any[]; edges: any[]; name?: string }) => void
   onLoadEvidence?: (evidence: any[]) => void
   isDarkMode?: boolean
 }
@@ -316,7 +316,7 @@ export default function SaveLoadDialog({
       console.log("[v0] Evidence in loaded workflow:", evidenceData)
       console.log("[v0] Evidence count in loaded workflow:", evidenceData.length)
       
-      onLoad({ nodes, edges })
+      onLoad({ nodes, edges, name: workflow.name })
       
       // Always update evidence when loading - clear if no evidence exists, load if it does
       if (onLoadEvidence) {

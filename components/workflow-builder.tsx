@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Play, Settings, Download, Zap, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -127,6 +127,7 @@ export default function WorkflowBuilder() {
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
   const [evidence, setEvidence] = useState<Evidence[]>([])
+  const [currentProjectName, setCurrentProjectName] = useState<string | null>(null)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -560,12 +561,15 @@ export default function WorkflowBuilder() {
     setIsSaveLoadOpen(true)
   }
 
-  const handleLoadWorkflow = (workflow: { nodes: any[]; edges: any[] }) => {
+  const handleLoadWorkflow = (workflow: { nodes: any[]; edges: any[]; name?: string }) => {
     setNodes(workflow.nodes)
     setEdges(workflow.edges)
+    if (workflow.name) {
+      setCurrentProjectName(workflow.name)
+    }
     toast({
       title: "Workflow loaded",
-      description: "Your workflow has been loaded successfully",
+      description: workflow.name ? `"${workflow.name}" has been loaded successfully` : "Your workflow has been loaded successfully",
     })
   }
 
@@ -724,34 +728,6 @@ export default function WorkflowBuilder() {
               Export
             </Button>
 
-            <Button
-              onClick={executeWorkflow}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-purple-500/10 text-purple-400 border-purple-500/50 hover:border-purple-500"
-                  : "bg-transparent hover:bg-purple-500/10 text-purple-600 border-purple-500"
-              }`}
-            >
-              <Play className="h-4 w-4 mr-1.5" />
-              Test
-            </Button>
-
-            <Button
-              onClick={executeWorkflow}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:border-cyan-500"
-                  : "bg-transparent hover:bg-cyan-500/10 text-cyan-600 border-cyan-500"
-              }`}
-            >
-              <Zap className="h-4 w-4 mr-1.5" />
-              Run
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -866,6 +842,20 @@ export default function WorkflowBuilder() {
 
           <div className="text-right">
             <div className="flex items-center gap-3">
+              {currentProjectName && (
+                <div className={`px-4 py-2 rounded-lg border ${
+                  isDarkMode 
+                    ? "bg-[#1a1a2e]/80 border-[#f26522]/30" 
+                    : "bg-white/80 border-indigo-200"
+                }`}>
+                  <p className={`text-xs font-medium ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Current Project
+                  </p>
+                  <p className={`text-sm font-semibold ${isDarkMode ? "text-[#f26522]" : "text-indigo-600"}`}>
+                    {currentProjectName}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
                   <div
