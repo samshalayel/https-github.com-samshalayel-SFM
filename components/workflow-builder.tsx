@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -70,6 +70,16 @@ import { createClient } from "@/lib/supabase/client"
 import SaveLoadDialog from "./save-load-dialog"
 import EvidenceRepository from "./evidence-repository"
 import type { Evidence } from "@/types/evidence"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const nodeTypes: NodeTypes = {
   input: InputNode,
@@ -128,6 +138,9 @@ export default function WorkflowBuilder() {
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
   const [evidence, setEvidence] = useState<Evidence[]>([])
   const [currentProjectName, setCurrentProjectName] = useState<string | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
+  const [lastSavedState, setLastSavedState] = useState<string>("")
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -150,6 +163,14 @@ export default function WorkflowBuilder() {
     setIsDarkMode(newMode)
     localStorage.setItem("sillar-theme", newMode ? "dark" : "light")
   }
+
+  // Track unsaved changes
+  useEffect(() => {
+    const currentState = JSON.stringify({ nodes, edges, evidence })
+    if (lastSavedState && currentState !== lastSavedState) {
+      setHasUnsavedChanges(true)
+    }
+  }, [nodes, edges, evidence, lastSavedState])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -543,6 +564,35 @@ export default function WorkflowBuilder() {
     [setNodes],
   )
 
+  const handleNewProjectClick = () => {
+    // Check if there are unsaved changes (nodes, edges, or evidence exist)
+    if (nodes.length > 0 || edges.length > 0 || evidence.length > 0) {
+      setIsNewProjectDialogOpen(true)
+    } else {
+      createNewProject()
+    }
+  }
+
+  const createNewProject = () => {
+    const defaultName = `Project-${new Date().toISOString().slice(0, 10)}-${Date.now().toString().slice(-4)}`
+    setNodes([])
+    setEdges([])
+    setEvidence([])
+    setCurrentProjectName(defaultName)
+    setHasUnsavedChanges(false)
+    setLastSavedState("")
+    setIsNewProjectDialogOpen(false)
+    toast({
+      title: "New project created",
+      description: `"${defaultName}" is ready to use`,
+    })
+  }
+
+  const handleSaveBeforeNew = () => {
+    setIsNewProjectDialogOpen(false)
+    handleOpenSave()
+  }
+
   const handleOpenSave = () => {
     if (nodes.length === 0) {
       toast({
@@ -646,51 +696,28 @@ export default function WorkflowBuilder() {
             : "border-gray-200 bg-white/90 backdrop-blur-xl"
         }`}
       >
-        <div className={`p-6 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <h2 className={`text-2xl font-bold mb-1 ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
-            Seesaw Model Stages
-          </h2>
-          <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-            Drag stages to build your workflow
-          </p>
-        </div>
+        {/* Action Buttons at Top */}
+        <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={handleNewProjectClick}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-blue-500/10 text-blue-400 border-blue-500/50 hover:border-blue-500"
+                  : "bg-transparent hover:bg-blue-500/10 text-blue-600 border-blue-500"
+              }`}
+            >
+              <FilePlus className="h-4 w-4 mr-1.5" />
+              New
+            </Button>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <NodeLibrary isDarkMode={isDarkMode} />
-        </div>
-      </div>
-
-      <button
-        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 backdrop-blur-sm border shadow-lg rounded-r-lg p-2 transition-all duration-300 hover:shadow-xl ${
-          isDarkMode
-            ? "bg-[#1a1a2e]/90 hover:bg-[#252542] border-white/5 hover:border-[#f26522]/30"
-            : "bg-white/90 hover:bg-gray-50 border-gray-200"
-        }`}
-        style={{ left: isSidebarCollapsed ? "0" : "20rem" }}
-        aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {isSidebarCollapsed ? (
-          <ChevronRight className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
-        ) : (
-          <ChevronLeft className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
-        )}
-      </button>
-
-      <div className="flex-1 flex flex-col">
-        <div
-          className={`h-16 border-b backdrop-blur-xl flex items-center justify-between px-6 shadow-lg ${
-            isDarkMode
-              ? "border-white/5 bg-gradient-to-r from-[#1a1a2e]/95 to-[#0f0f0f]/95"
-              : "border-gray-200 bg-white/95"
-          }`}
-        >
-          <div className="flex items-center gap-2">
             <Button
               onClick={handleOpenSave}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-yellow-500/10 text-yellow-500 border-yellow-500/50 hover:border-yellow-500"
                   : "bg-transparent hover:bg-yellow-500/10 text-yellow-600 border-yellow-500"
@@ -704,7 +731,7 @@ export default function WorkflowBuilder() {
               onClick={handleOpenLoad}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-emerald-500/10 text-emerald-400 border-emerald-500/50 hover:border-emerald-500"
                   : "bg-transparent hover:bg-emerald-500/10 text-emerald-600 border-emerald-500"
@@ -718,7 +745,7 @@ export default function WorkflowBuilder() {
               onClick={exportWorkflow}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-[#f26522]/10 text-[#f26522] border-[#f26522]/50 hover:border-[#f26522]"
                   : "bg-transparent hover:bg-orange-500/10 text-orange-600 border-orange-500"
@@ -727,13 +754,15 @@ export default function WorkflowBuilder() {
               <Upload className="h-4 w-4 mr-1.5" />
               Export
             </Button>
+          </div>
 
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                  className={`rounded-lg px-3 py-2 transition-all font-medium w-full ${
                     isDarkMode
                       ? "bg-transparent hover:bg-teal-500/10 text-teal-400 border-teal-500/50 hover:border-teal-500"
                       : "bg-transparent hover:bg-teal-500/10 text-teal-600 border-teal-500"
@@ -787,7 +816,7 @@ export default function WorkflowBuilder() {
               onClick={() => setIsEvidenceOpen(true)}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:border-cyan-500"
                   : "bg-transparent hover:bg-cyan-500/10 text-cyan-600 border-cyan-500"
@@ -796,7 +825,63 @@ export default function WorkflowBuilder() {
               <FileText className="h-4 w-4 mr-1.5" />
               Evidence
             </Button>
+          </div>
+        </div>
 
+        {/* Project Name Display */}
+        {currentProjectName && (
+          <div className={`px-4 py-3 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>Project:</span>
+              <span className={`text-sm font-semibold truncate ${isDarkMode ? "text-[#f26522]" : "text-indigo-600"}`}>
+                {currentProjectName}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Seesaw Model Stages Title */}
+        <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
+          <h2 className={`text-lg font-bold ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
+            Seesaw Model Stages
+          </h2>
+          <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+            Drag stages to build your workflow
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <NodeLibrary isDarkMode={isDarkMode} />
+        </div>
+      </div>
+
+      <button
+        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 backdrop-blur-sm border shadow-lg rounded-r-lg p-2 transition-all duration-300 hover:shadow-xl ${
+          isDarkMode
+            ? "bg-[#1a1a2e]/90 hover:bg-[#252542] border-white/5 hover:border-[#f26522]/30"
+            : "bg-white/90 hover:bg-gray-50 border-gray-200"
+        }`}
+        style={{ left: isSidebarCollapsed ? "0" : "20rem" }}
+        aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isSidebarCollapsed ? (
+          <ChevronRight className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
+        ) : (
+          <ChevronLeft className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
+        )}
+      </button>
+
+      <div className="flex-1 flex flex-col">
+        <div
+          className={`h-16 border-b backdrop-blur-xl flex items-center justify-between px-6 shadow-lg ${
+            isDarkMode
+              ? "border-white/5 bg-gradient-to-r from-[#1a1a2e]/95 to-[#0f0f0f]/95"
+              : "border-gray-200 bg-white/95"
+          }`}
+        >
+          {/* Left side - Settings, Theme, Logout */}
+          <div className="flex items-center gap-2">
             <Button
               onClick={() => setIsSettingsOpen(true)}
               size="sm"
@@ -840,41 +925,24 @@ export default function WorkflowBuilder() {
             </Button>
           </div>
 
-          <div className="text-right">
-            <div className="flex items-center gap-3">
-              {currentProjectName && (
-                <div className={`px-4 py-2 rounded-lg border ${
-                  isDarkMode 
-                    ? "bg-[#1a1a2e]/80 border-[#f26522]/30" 
-                    : "bg-white/80 border-indigo-200"
-                }`}>
-                  <p className={`text-xs font-medium ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Current Project
-                  </p>
-                  <p className={`text-sm font-semibold ${isDarkMode ? "text-[#f26522]" : "text-indigo-600"}`}>
-                    {currentProjectName}
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-col items-end">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-9 h-9 rounded-xl shadow-lg flex items-center justify-center ${
-                      isDarkMode
-                        ? "bg-gradient-to-br from-[#f26522] to-[#ff8c42] shadow-[#f26522]/40"
-                        : "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-purple-500/30"
-                    }`}
-                  >
-                    <span className="text-white font-bold text-base">S</span>
-                  </div>
-                  <h1 className={`text-2xl font-bold tracking-tight ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                    SILLAR
-                  </h1>
-                </div>
-                <p className={`text-xs font-medium mt-0.5 ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
-                  AI-Powered Workflow Platform
-                </p>
-              </div>
+          {/* Right side - Logo */}
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-9 h-9 rounded-xl shadow-lg flex items-center justify-center ${
+                isDarkMode
+                  ? "bg-gradient-to-br from-[#f26522] to-[#ff8c42] shadow-[#f26522]/40"
+                  : "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-purple-500/30"
+              }`}
+            >
+              <span className="text-white font-bold text-base">S</span>
+            </div>
+            <div>
+              <h1 className={`text-xl font-bold tracking-tight ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                SILLAR
+              </h1>
+              <p className={`text-xs font-medium ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+                AI-Powered Workflow Platform
+              </p>
             </div>
           </div>
         </div>
@@ -1016,6 +1084,49 @@ export default function WorkflowBuilder() {
         evidence={evidence}
         setEvidence={setEvidence}
       />
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <AlertDialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+        <AlertDialogContent className={isDarkMode ? "bg-[#1a1a2e] border-white/10" : "bg-white border-gray-200"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={isDarkMode ? "text-white" : "text-gray-900"}>
+              Unsaved Changes
+            </AlertDialogTitle>
+            <AlertDialogDescription className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+              You have unsaved changes in your current project. Would you like to save them before creating a new project?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel
+              onClick={() => setIsNewProjectDialogOpen(false)}
+              className={isDarkMode 
+                ? "bg-transparent border-white/20 text-white hover:bg-white/10" 
+                : "bg-transparent border-gray-300 text-gray-700 hover:bg-gray-100"
+              }
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={createNewProject}
+              className={isDarkMode 
+                ? "bg-red-600 hover:bg-red-700 text-white" 
+                : "bg-red-600 hover:bg-red-700 text-white"
+              }
+            >
+              Discard Changes
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleSaveBeforeNew}
+              className={isDarkMode 
+                ? "bg-[#f26522] hover:bg-[#ff8c42] text-white" 
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"
+              }
+            >
+              Save First
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
