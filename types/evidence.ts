@@ -7,6 +7,8 @@ export interface Evidence {
   owner: string
   mandatory: boolean // true = Mandatory, false = Advisory
   description?: string
+  fileUrl?: string // URL to uploaded PDF file in Supabase Storage
+  fileName?: string // Original file name
   createdAt: string
   updatedAt: string
 }
