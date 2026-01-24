@@ -42,6 +42,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
 
+  // Auth callback should always be accessible to complete OAuth flow
+  const isAuthCallback = request.nextUrl.pathname === "/auth/callback"
+  
   // Auth pages should be accessible without login
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth/")
   
@@ -56,8 +59,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If logged in user tries to access auth pages, redirect to home
-  if (isAuthPage && user) {
+  // If logged in user tries to access auth pages (except callback), redirect to home
+  if (isAuthPage && user && !isAuthCallback) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     return NextResponse.redirect(url)
