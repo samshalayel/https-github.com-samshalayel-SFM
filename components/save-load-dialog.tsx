@@ -211,7 +211,11 @@ export default function SaveLoadDialog({
         return
       }
 
-      // Update existing workflow
+      console.log("[v0] Overwriting workflow:", name)
+      console.log("[v0] Current Evidence being saved:", currentEvidence)
+      console.log("[v0] Evidence count:", currentEvidence?.length || 0)
+
+      // Update existing workflow - also update updated_at timestamp
       const { error } = await supabase
         .from("snapshots")
         .update({
@@ -220,18 +224,22 @@ export default function SaveLoadDialog({
             edges: currentEdges,
             evidence: currentEvidence,
           },
+          updated_at: new Date().toISOString(),
         })
         .eq("id", existingWorkflow.id)
 
       if (error) {
+        console.log("[v0] Error updating workflow:", error)
         throw error
       }
 
+      console.log("[v0] Workflow updated successfully")
       setWorkflowName("")
       setShowDuplicateDialog(false)
       await loadWorkflows()
       onClose()
     } catch (error: any) {
+      console.log("[v0] Failed to update workflow:", error)
       alert("Failed to update workflow")
     } finally {
       setIsSaving(false)
