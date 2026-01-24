@@ -144,8 +144,8 @@ export default function SaveLoadDialog({
       
       onLoad({ nodes, edges })
       
-      // Load evidence if callback is provided and evidence data exists
-      if (onLoadEvidence && evidenceData.length > 0) {
+      // Always update evidence when loading - clear if no evidence exists, load if it does
+      if (onLoadEvidence) {
         onLoadEvidence(evidenceData)
       }
       
