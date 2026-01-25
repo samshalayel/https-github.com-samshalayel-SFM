@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Layers, Shield, Lightbulb, CheckCircle2, Compass, Link2 } from "lucide-react"
+import { Layers, Shield, Lightbulb, CheckCircle2, Compass, Link2, FileText } from "lucide-react"
 import SeesawIcon from "./seesaw-icon"
 
 interface NodeLibraryProps {
@@ -126,6 +126,24 @@ export default function NodeLibrary({ isDarkMode = true }: NodeLibraryProps) {
         </div>
         <p className="text-center text-xs text-white/80 leading-relaxed">
           Justification check, does not block flow
+        </p>
+      </div>
+
+      {/* Evidence Node */}
+      <div
+        className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl p-4 cursor-move hover:shadow-lg hover:shadow-cyan-500/20 hover:scale-[1.02] transition-all duration-200"
+        draggable
+        onDragStart={(e) => onDragStart(e, "evidence-node", "Evidence")}
+      >
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-white" />
+            <span className="font-semibold text-sm text-white">Evidence</span>
+          </div>
+          <span className="text-xs text-white/80">Document</span>
+        </div>
+        <p className="text-center text-xs text-white/80 leading-relaxed">
+          Attach supporting documents to your workflow
         </p>
       </div>
     </div>

@@ -63,6 +63,7 @@ import InsightNode from "./nodes/insight-node"
 import OutcomeNode from "./nodes/outcome-node"
 import DirectionNode from "./nodes/direction-node"
 import AlignmentGateNode from "./nodes/alignment-gate-node"
+import EvidenceNode from "./nodes/evidence-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
@@ -117,6 +118,7 @@ const nodeTypes: NodeTypes = {
   "outcome-node": OutcomeNode,
   "direction-node": DirectionNode,
   "alignment-gate": AlignmentGateNode,
+  "evidence-node": EvidenceNode,
 }
 
 const edgeTypes: EdgeTypes = {
@@ -1015,6 +1017,7 @@ export default function WorkflowBuilder() {
     "outcome-node": "#22c55e",
     "direction-node": "#6366f1",
     "alignment-gate": "#f59e0b",
+    "evidence-node": "#06b6d4",
   }
   return colors[node.type as string] || "#6366f1"
                 }}

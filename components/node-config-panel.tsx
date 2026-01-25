@@ -18,9 +18,10 @@ interface NodeConfigPanelProps {
   node: WorkflowNode
   updateNodeData: (nodeId: string, data: any) => void
   onClose: () => void
+  isDarkMode?: boolean
 }
 
-export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeConfigPanelProps) {
+export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkMode = false }: NodeConfigPanelProps) {
   const [localData, setLocalData] = useState({ ...node.data })
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 })
   const [size, setSize] = useState({ width: 500, height: 500 })
@@ -1136,6 +1137,79 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose }: NodeC
                 placeholder="Supplier name"
               />
             </div>
+          </>
+        )
+
+      case "evidence-node":
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="evidenceType">Evidence Type</Label>
+              <Select
+                value={localData.evidenceType || "Policy"}
+                onValueChange={(value) => handleChange("evidenceType", value)}
+              >
+                <SelectTrigger id="evidenceType" className="bg-gray-100 border-gray-300 text-gray-900">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Policy">Policy</SelectItem>
+                  <SelectItem value="Strategy">Strategy</SelectItem>
+                  <SelectItem value="Legal">Legal</SelectItem>
+                  <SelectItem value="Ops">Operations</SelectItem>
+                  <SelectItem value="Research">Research</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="owner">Document Owner</Label>
+              <Input
+                id="owner"
+                value={localData.owner || ""}
+                onChange={(e) => handleChange("owner", e.target.value)}
+                placeholder="e.g., Legal Dept, Compliance Team"
+                className="bg-gray-100 border-gray-300 text-gray-900"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 py-2">
+              <Switch
+                id="mandatory"
+                checked={localData.mandatory !== false}
+                onCheckedChange={(checked) => handleChange("mandatory", checked)}
+              />
+              <Label htmlFor="mandatory">
+                {localData.mandatory !== false ? "Mandatory (Required for approval)" : "Advisory (Optional reference)"}
+              </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="justification">Justification</Label>
+              <Textarea
+                id="justification"
+                value={localData.justification || ""}
+                onChange={(e) => handleChange("justification", e.target.value)}
+                placeholder="Why this evidence supports the workflow decision..."
+                className="h-24 bg-gray-100 border-gray-300 text-gray-900"
+              />
+            </div>
+
+            {localData.fileUrl && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>File attached:</strong> {localData.fileName || "PDF Document"}
+                </p>
+                <a
+                  href={localData.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-600 hover:text-green-800 underline"
+                >
+                  View Document
+                </a>
+              </div>
+            )}
           </>
         )
 
