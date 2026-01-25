@@ -38,7 +38,9 @@ import {
   Upload,
   File,
   ExternalLink,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { Evidence, EvidenceType } from "@/types/evidence"
@@ -83,6 +85,19 @@ export default function EvidenceRepository({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set())
+
+  const toggleDocExpanded = (docId: string) => {
+    setExpandedDocs(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(docId)) {
+        newSet.delete(docId)
+      } else {
+        newSet.add(docId)
+      }
+      return newSet
+    })
+  }
   
   // New evidence form state
   const [newEvidence, setNewEvidence] = useState({
@@ -237,10 +252,12 @@ export default function EvidenceRepository({
           {!isAddingNew && (
             <Button
               onClick={() => setIsAddingNew(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Document
+              <div className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-white">
+                <Plus className="h-3 w-3" />
+              </div>
+              Upload New Document
             </Button>
           )}
 
@@ -416,53 +433,81 @@ export default function EvidenceRepository({
                   )}
                 </div>
               ) : (
-                filteredEvidence.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className={`${evidenceTypeColors[doc.type]} border`}>
-                            <span className="flex items-center gap-1">
-                              {evidenceTypeIcons[doc.type]}
-                              {doc.type}
-                            </span>
-                          </Badge>
-                          <Badge variant={doc.mandatory ? "destructive" : "outline"} className="text-xs">
-                            {doc.mandatory ? "Mandatory" : "Advisory"}
-                          </Badge>
-                        </div>
-                        <h4 className="font-medium text-gray-900 truncate">{doc.name}</h4>
-                        <p className="text-xs text-gray-500">Owner: {doc.owner}</p>
-                        {doc.description && (
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{doc.description}</p>
-                        )}
-                        {doc.fileUrl && (
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 mt-1"
-                          >
-                            <File className="h-3 w-3" />
-                            <span className="truncate max-w-[150px]">{doc.fileName || "View PDF"}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteEvidence(doc.id)}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                filteredEvidence.map((doc) => {
+                  const isExpanded = expandedDocs.has(doc.id)
+                  return (
+                    <div
+                      key={doc.id}
+                      className="border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors overflow-hidden"
+                    >
+                      {/* Header - Always Visible */}
+                      <div 
+                        className="flex items-center gap-2 p-3 cursor-pointer"
+                        onClick={() => toggleDocExpanded(doc.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <button className="flex-shrink-0 text-gray-500 hover:text-gray-700">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        <Badge className={`${evidenceTypeColors[doc.type]} border flex-shrink-0`}>
+                          <span className="flex items-center gap-1">
+                            {evidenceTypeIcons[doc.type]}
+                            {doc.type}
+                          </span>
+                        </Badge>
+                        <h4 className="font-medium text-gray-900 truncate flex-1">{doc.name}</h4>
+                        <Badge variant={doc.mandatory ? "destructive" : "outline"} className="text-xs flex-shrink-0">
+                          {doc.mandatory ? "Mandatory" : "Advisory"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteEvidence(doc.id)
+                          }}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="px-3 pb-3 pt-0 ml-6 border-t border-gray-100">
+                          <div className="pt-2 space-y-2">
+                            <p className="text-xs text-gray-500">
+                              <span className="font-medium">Owner:</span> {doc.owner}
+                            </p>
+                            {doc.description && (
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">Description:</span> {doc.description}
+                              </p>
+                            )}
+                            {doc.fileUrl && (
+                              <a
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <File className="h-3 w-3" />
+                                <span className="truncate max-w-[200px]">{doc.fileName || "View PDF"}</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            <p className="text-xs text-gray-400">
+                              Added: {new Date(doc.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  )
+                })}
               )}
             </div>
           </ScrollArea>
