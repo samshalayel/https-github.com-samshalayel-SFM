@@ -125,7 +125,7 @@ const edgeTypes: EdgeTypes = {
   custom: CustomEdge,
 }
 
-export default function WorkflowBuilder() {
+function WorkflowBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
@@ -949,7 +949,7 @@ export default function WorkflowBuilder() {
           </div>
         </div>
 
-        <div className="flex-1 relative" ref={reactFlowWrapper}>
+        <div className="flex-1 relative h-full w-full" ref={reactFlowWrapper} style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div
               className={`absolute top-20 left-20 w-72 h-72 rounded-full blur-3xl ${
@@ -968,8 +968,7 @@ export default function WorkflowBuilder() {
             ></div>
           </div>
 
-          <ReactFlowProvider>
-            <ReactFlow
+          <ReactFlow
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
@@ -987,6 +986,7 @@ export default function WorkflowBuilder() {
               snapGrid={[15, 15]}
               defaultEdgeOptions={{ type: "custom" }}
               className="relative z-10"
+              style={{ width: '100%', height: '100%' }}
             >
               <Background color={isDarkMode ? "#2a2a4a" : "#d1d5db"} gap={20} size={1} className="opacity-30" />
               <Controls
@@ -1052,7 +1052,6 @@ export default function WorkflowBuilder() {
                 </Panel>
               )}
             </ReactFlow>
-          </ReactFlowProvider>
         </div>
       </div>
 
@@ -1131,5 +1130,14 @@ export default function WorkflowBuilder() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+// Wrap the component with ReactFlowProvider
+export default function WorkflowBuilder() {
+  return (
+    <ReactFlowProvider>
+      <WorkflowBuilderInner />
+    </ReactFlowProvider>
   )
 }
