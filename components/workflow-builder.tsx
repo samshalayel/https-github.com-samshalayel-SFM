@@ -815,17 +815,17 @@ function WorkflowBuilderInner() {
             </DropdownMenu>
 
             <Button
-              onClick={() => setIsEvidenceOpen(true)}
+              onClick={() => setIsSettingsOpen(true)}
               size="sm"
               variant="outline"
               className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
-                  ? "bg-transparent hover:bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:border-cyan-500"
-                  : "bg-transparent hover:bg-cyan-500/10 text-cyan-600 border-cyan-500"
+                  ? "bg-transparent hover:bg-gray-500/10 text-gray-400 border-gray-500/50 hover:border-gray-500"
+                  : "bg-transparent hover:bg-gray-500/10 text-gray-600 border-gray-400"
               }`}
             >
-              <FileText className="h-4 w-4 mr-1.5" />
-              Evidence
+              <Settings className="h-4 w-4 mr-1.5" />
+              Settings
             </Button>
           </div>
         </div>
@@ -882,22 +882,8 @@ function WorkflowBuilderInner() {
               : "border-gray-200 bg-white/95"
           }`}
         >
-          {/* Left side - Settings, Theme, Logout */}
+          {/* Left side - Theme, Logout */}
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setIsSettingsOpen(true)}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-gray-500/10 text-gray-400 border-gray-500/50 hover:border-gray-500"
-                  : "bg-transparent hover:bg-gray-500/10 text-gray-600 border-gray-400"
-              }`}
-            >
-              <Settings className="h-4 w-4 mr-1.5" />
-              Settings
-            </Button>
-
             <Button
               onClick={toggleTheme}
               size="sm"
