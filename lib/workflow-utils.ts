@@ -63,6 +63,21 @@ export const createNode = ({
   }
 
   switch (type) {
+    case "evidence-node":
+      return {
+        ...baseNode,
+        data: {
+          ...baseNode.data,
+          label: displayName || "Evidence Document",
+          description: "Supporting document for workflow decisions",
+          evidenceType: "Policy",
+          owner: "",
+          mandatory: true,
+          fileUrl: undefined,
+          fileName: undefined,
+          justification: "",
+        },
+      }
     case "input":
       return {
         ...baseNode,
@@ -264,6 +279,8 @@ const getDefaultLabel = (type: string): string => {
   if (gateLabels[type]) return gateLabels[type]
 
   switch (type) {
+    case "evidence-node":
+      return "Evidence Document"
     case "input":
       return "Input"
     case "output":
@@ -334,6 +351,8 @@ const getDefaultDescription = (type: string): string => {
   }
 
   switch (type) {
+    case "evidence-node":
+      return "Supporting document for workflow decisions"
     case "input":
       return "Data input node"
     case "output":

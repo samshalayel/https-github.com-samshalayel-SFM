@@ -1,4 +1,5 @@
 import type { Node } from "reactflow"
+import type { EvidenceType } from "@/types/evidence"
 
 export interface NodeData {
   label: string
@@ -141,6 +142,14 @@ export interface NodeData {
   approvers?: string[]
   gateChecklist?: string[]
   gateStatus?: "pending" | "approved" | "rejected"
+
+  // Evidence node properties
+  evidenceType?: EvidenceType
+  owner?: string
+  mandatory?: boolean
+  fileUrl?: string
+  fileName?: string
+  justification?: string
 }
 
 export type WorkflowNode = Node<NodeData>
