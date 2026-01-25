@@ -432,21 +432,18 @@ export default function EvidenceRepository({
                     <p>No documents match your search</p>
                   )}
                 </div>
-              ) : (
-                filteredEvidence.map((doc) => {
-                  const isExpanded = expandedDocs.has(doc.id)
-                  return (
+) : (
+                filteredEvidence.map((doc) => (
                     <div
                       key={doc.id}
                       className="border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors overflow-hidden"
                     >
-                      {/* Header - Always Visible */}
-                      <div 
+                      <div
                         className="flex items-center gap-2 p-3 cursor-pointer"
                         onClick={() => toggleDocExpanded(doc.id)}
                       >
-                        <button className="flex-shrink-0 text-gray-500 hover:text-gray-700">
-                          {isExpanded ? (
+                        <button type="button" className="flex-shrink-0 text-gray-500 hover:text-gray-700">
+                          {expandedDocs.has(doc.id) ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
@@ -475,8 +472,7 @@ export default function EvidenceRepository({
                         </Button>
                       </div>
                       
-                      {/* Expanded Content */}
-                      {isExpanded && (
+                      {expandedDocs.has(doc.id) && (
                         <div className="px-3 pb-3 pt-0 ml-6 border-t border-gray-100">
                           <div className="pt-2 space-y-2">
                             <p className="text-xs text-gray-500">
@@ -506,8 +502,7 @@ export default function EvidenceRepository({
                         </div>
                       )}
                     </div>
-                  )
-                })}
+                  ))
               )}
             </div>
           </ScrollArea>
