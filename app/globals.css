@@ -130,4 +130,20 @@
     background: hsl(240 10% 10%) !important;
     border-radius: 12px !important;
   }
+
+  /* Ensure ReactFlow wrapper has proper dimensions */
+  .react-flow__renderer {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .react-flow__viewport {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Ensure nodes are visible */
+  .react-flow__node {
+    z-index: 10 !important;
+  }
 }
