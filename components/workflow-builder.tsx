@@ -775,7 +775,7 @@ const exportWorkflow = () => {
       >
         {/* Action Buttons at Top */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               onClick={handleNewProjectClick}
               size="sm"
@@ -847,13 +847,13 @@ const exportWorkflow = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="flex gap-2 mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`rounded-lg px-3 py-2 transition-all font-medium w-full ${
+                  className={`rounded-lg px-3 py-2 transition-all font-medium flex-1 ${
                     isDarkMode
                       ? "bg-transparent hover:bg-teal-500/10 text-teal-400 border-teal-500/50 hover:border-teal-500"
                       : "bg-transparent hover:bg-teal-500/10 text-teal-600 border-teal-500"
@@ -907,7 +907,7 @@ const exportWorkflow = () => {
               onClick={() => setIsSettingsOpen(true)}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium flex-1 ${
                 isDarkMode
                   ? "bg-transparent hover:bg-gray-500/10 text-gray-400 border-gray-500/50 hover:border-gray-500"
                   : "bg-transparent hover:bg-gray-500/10 text-gray-600 border-gray-400"
