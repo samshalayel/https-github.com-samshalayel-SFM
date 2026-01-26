@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -648,7 +648,7 @@ function WorkflowBuilderInner() {
     }, 2000)
   }
 
-  const exportWorkflow = () => {
+const exportWorkflow = () => {
     if (nodes.length === 0) {
       toast({
         title: "Nothing to export",
@@ -657,6 +657,81 @@ function WorkflowBuilderInner() {
       })
       return
     }
+
+    const workflow = {
+      nodes,
+      edges,
+      evidence,
+      exportedAt: new Date().toISOString(),
+    }
+
+    const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `workflow-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: "Workflow exported",
+      description: "Your workflow has been downloaded as JSON file",
+    })
+  }
+
+  const importWorkflow = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".json"
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string
+          const workflow = JSON.parse(content)
+
+          if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
+            toast({
+              title: "Invalid file",
+              description: "The file does not contain valid workflow data",
+              variant: "destructive",
+            })
+            return
+          }
+
+          setNodes(workflow.nodes || [])
+          setEdges(workflow.edges || [])
+          if (workflow.evidence && Array.isArray(workflow.evidence)) {
+            setEvidence(workflow.evidence)
+          }
+          setCurrentProjectName(null)
+          setHasUnsavedChanges(true)
+
+          toast({
+            title: "Workflow imported",
+            description: `Loaded ${workflow.nodes.length} nodes and ${workflow.edges?.length || 0} connections`,
+          })
+
+          setTimeout(() => {
+            if (reactFlowInstance) {
+              reactFlowInstance.fitView({ padding: 0.2 })
+            }
+          }, 100)
+        } catch {
+          toast({
+            title: "Import failed",
+            description: "Could not parse the JSON file",
+            variant: "destructive",
+          })
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }
 
     const workflowData = {
       name: "Sillar Workflow",
@@ -755,6 +830,20 @@ function WorkflowBuilderInner() {
             >
               <Upload className="h-4 w-4 mr-1.5" />
               Export
+            </Button>
+
+            <Button
+              onClick={importWorkflow}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-purple-500/10 text-purple-400 border-purple-500/50 hover:border-purple-500"
+                  : "bg-transparent hover:bg-purple-500/10 text-purple-600 border-purple-500"
+              }`}
+            >
+              <FileInput className="h-4 w-4 mr-1.5" />
+              Import
             </Button>
           </div>
 
