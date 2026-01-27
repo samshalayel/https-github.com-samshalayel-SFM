@@ -775,7 +775,7 @@ const exportWorkflow = () => {
       >
         {/* Action Buttons at Top */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleNewProjectClick}
               size="sm"
@@ -836,7 +836,7 @@ const exportWorkflow = () => {
               onClick={importWorkflow}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium col-span-2 ${
                 isDarkMode
                   ? "bg-transparent hover:bg-purple-500/10 text-purple-400 border-purple-500/50 hover:border-purple-500"
                   : "bg-transparent hover:bg-purple-500/10 text-purple-600 border-purple-500"
