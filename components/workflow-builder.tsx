@@ -836,7 +836,7 @@ const exportWorkflow = () => {
               onClick={importWorkflow}
               size="sm"
               variant="outline"
-              className={`rounded-lg px-3 py-2 transition-all font-medium col-span-2 ${
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
                 isDarkMode
                   ? "bg-transparent hover:bg-purple-500/10 text-purple-400 border-purple-500/50 hover:border-purple-500"
                   : "bg-transparent hover:bg-purple-500/10 text-purple-600 border-purple-500"
@@ -847,7 +847,7 @@ const exportWorkflow = () => {
             </Button>
           </div>
 
-          <div className="flex gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
