@@ -1016,29 +1016,6 @@ const exportWorkflow = () => {
     input.click()
   }
 
-    const workflowData = {
-      name: "Sillar Workflow",
-      exportedAt: new Date().toISOString(),
-      nodes: nodes,
-      edges: edges,
-    }
-
-    const blob = new Blob([JSON.stringify(workflowData, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `sillar-workflow-${Date.now()}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    toast({
-      title: "Workflow exported",
-      description: "Your workflow has been downloaded as JSON file",
-    })
-  }
-
   return (
     <div
       className={`flex flex-row h-screen ${
@@ -1058,7 +1035,7 @@ const exportWorkflow = () => {
       >
         {/* Action Buttons at Top */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               onClick={handleNewProjectClick}
               size="sm"
@@ -1128,9 +1105,9 @@ const exportWorkflow = () => {
               <FileInput className="h-4 w-4 mr-1.5" />
               Import
             </Button>
-          </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1201,20 +1178,7 @@ const exportWorkflow = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              onClick={() => setIsSettingsOpen(true)}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-3 py-2 transition-all font-medium flex-1 ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-gray-500/10 text-gray-400 border-gray-500/50 hover:border-gray-500"
-                  : "bg-transparent hover:bg-gray-500/10 text-gray-600 border-gray-400"
-              }`}
-            >
-              <Settings className="h-4 w-4 mr-1.5" />
-              Settings
-            </Button>
-          </div>
+            </div>
         </div>
 
         {/* Project Name Display */}
@@ -1297,6 +1261,20 @@ const exportWorkflow = () => {
             >
               <LogOut className="h-4 w-4 mr-1.5" />
               Logout
+            </Button>
+
+            <Button
+              onClick={() => setIsSettingsOpen(true)}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-4 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-gray-500/10 text-gray-400 border-gray-500/50 hover:border-gray-500"
+                  : "bg-transparent hover:bg-gray-500/10 text-gray-600 border-gray-400"
+              }`}
+            >
+              <Settings className="h-4 w-4 mr-1.5" />
+              Settings
             </Button>
           </div>
 
