@@ -775,7 +775,7 @@ const exportWorkflow = () => {
       >
         {/* Action Buttons at Top */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               onClick={handleNewProjectClick}
               size="sm"
@@ -845,7 +845,7 @@ const exportWorkflow = () => {
               <FileInput className="h-4 w-4 mr-1.5" />
               Import
             </Button>
-          </div>
+            </div>
 
           <div className="grid grid-cols-2 gap-2 mt-2">
             <DropdownMenu>
