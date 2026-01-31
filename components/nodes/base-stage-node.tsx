@@ -13,6 +13,9 @@ interface BaseStageNodeProps {
     aiPercentage?: number
     group?: string
     isCollapsed?: boolean
+    isGroupRepresentative?: boolean
+    hiddenGroupNodes?: string[]
+    groupNodeCount?: number
   }
   id: string
   stageNumber: number
@@ -50,8 +53,10 @@ export default function BaseStageNode({
 
   // Collapsed view
   if (isCollapsed) {
+    const isGroupRep = data.isGroupRepresentative && data.groupNodeCount && data.groupNodeCount > 1
+    
     return (
-      <div className="shadow-lg rounded-xl border-2 border-gray-200 bg-white min-w-[120px] overflow-hidden hover:shadow-xl transition-all duration-200 group">
+      <div className={`shadow-lg rounded-xl border-2 ${isGroupRep ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'} min-w-[120px] overflow-hidden hover:shadow-xl transition-all duration-200 group`}>
         <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-blue-600 border-2 border-white" />
         
         <div className="px-3 py-2 flex items-center gap-2">
@@ -68,6 +73,11 @@ export default function BaseStageNode({
               <div className="flex items-center justify-center gap-1 mt-0.5">
                 <FolderOpen className="h-3 w-3 text-blue-500" />
                 <span className="text-[10px] text-blue-600 truncate max-w-[80px]">{data.group}</span>
+                {isGroupRep && (
+                  <span className="text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full font-medium">
+                    {data.groupNodeCount}
+                  </span>
+                )}
               </div>
             )}
           </div>
