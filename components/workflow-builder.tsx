@@ -1045,11 +1045,15 @@ function WorkflowBuilderInner() {
 
   const collapseAllNodes = () => {
     setNodes((nds) => {
-      // Group nodes by their group name
+      // Filter out group container nodes (type === 'group')
+      const regularNodes = nds.filter((node) => node.type !== 'group')
+      const groupContainerNodes = nds.filter((node) => node.type === 'group')
+      
+      // Group regular nodes by their group name
       const groupedNodes: Record<string, typeof nds> = {}
       const ungroupedNodes: typeof nds = []
       
-      nds.forEach((node) => {
+      regularNodes.forEach((node) => {
         if (node.data.group) {
           if (!groupedNodes[node.data.group]) {
             groupedNodes[node.data.group] = []
@@ -1068,9 +1072,9 @@ function WorkflowBuilderInner() {
       
       // For grouped nodes: hide all except one representative node per group
       const collapsedGrouped: typeof nds = []
-      Object.entries(groupedNodes).forEach(([groupName, groupNodes]) => {
+      Object.entries(groupedNodes).forEach(([groupName, nodesInGroup]) => {
         // Sort by position to get the first node as representative
-        const sorted = [...groupNodes].sort((a, b) => a.position.x - b.position.x)
+        const sorted = [...nodesInGroup].sort((a, b) => a.position.x - b.position.x)
         
         // First node becomes the visible representative (collapsed)
         const representative = sorted[0]
@@ -1082,20 +1086,27 @@ function WorkflowBuilderInner() {
             isGroupRepresentative: true,
             hiddenGroupNodes: sorted.slice(1).map(n => n.id),
             groupNodeCount: sorted.length,
+            groupedNodeTypes: sorted.map(n => n.type),
           },
         })
         
-        // Hide other nodes in the group
+        // Hide other nodes in the group by setting hidden: true
         sorted.slice(1).forEach((node) => {
           collapsedGrouped.push({
             ...node,
-            data: { ...node.data, isCollapsed: true },
+            data: { ...node.data, isCollapsed: true, isHiddenInGroup: true },
             hidden: true,
           })
         })
       })
       
-      return [...collapsedUngrouped, ...collapsedGrouped]
+      // Return all nodes including group containers (collapsed)
+      const collapsedGroupContainers = groupContainerNodes.map((node) => ({
+        ...node,
+        data: { ...node.data, isCollapsed: true },
+      }))
+      
+      return [...collapsedUngrouped, ...collapsedGrouped, ...collapsedGroupContainers]
     })
     toast({
       title: "All nodes collapsed",
