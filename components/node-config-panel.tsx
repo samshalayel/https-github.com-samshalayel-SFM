@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Plus, Trash2, User, Cpu, AlertTriangle, GripVertical } from "lucide-react"
+import { X, Plus, Trash2, User, Cpu, AlertTriangle, GripVertical, FolderOpen, Check, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,9 +19,10 @@ interface NodeConfigPanelProps {
   updateNodeData: (nodeId: string, data: any) => void
   onClose: () => void
   isDarkMode?: boolean
+  existingGroups?: string[]
 }
 
-export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkMode = false }: NodeConfigPanelProps) {
+export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkMode = false, existingGroups = [] }: NodeConfigPanelProps) {
   const [localData, setLocalData] = useState({ ...node.data })
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 })
   const [size, setSize] = useState({ width: 500, height: 500 })
@@ -30,6 +31,8 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const panelRef = useRef<HTMLDivElement>(null)
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false)
+  const [newGroupName, setNewGroupName] = useState("")
 
   useEffect(() => {
     setLocalData({ ...node.data })
@@ -84,6 +87,21 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
       }
     }
   }, [isDragging, isResizing, dragStart, resizeStart])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isGroupDropdownOpen) {
+        const target = e.target as HTMLElement
+        if (!target.closest('.group-dropdown-container')) {
+          setIsGroupDropdownOpen(false)
+        }
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isGroupDropdownOpen])
 
   const handleChange = (key: string, value: any) => {
     setLocalData((prev) => ({
@@ -221,6 +239,96 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
               className="h-20 resize-none bg-gray-100 border-gray-300 text-gray-900"
               placeholder="Define the real problem and context"
             />
+          </div>
+
+          {/* Group Selection */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-blue-600">
+              <FolderOpen className="w-4 h-4" />
+              Group
+            </Label>
+            <div className="relative group-dropdown-container">
+              <button
+                type="button"
+                onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 text-sm hover:bg-gray-50 transition-colors"
+              >
+                <span className={localData.group ? "text-gray-900" : "text-gray-500"}>
+                  {localData.group || "Select or add group..."}
+                </span>
+                <ChevronsUpDown className="w-4 h-4 text-gray-500" />
+              </button>
+              
+              {isGroupDropdownOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {/* Add new group */}
+                  <div className="p-2 border-b border-gray-100">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        placeholder="New group name..."
+                        className="flex-1 h-8 text-sm bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newGroupName.trim()) {
+                            handleChange("group", newGroupName.trim())
+                            setNewGroupName("")
+                            setIsGroupDropdownOpen(false)
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newGroupName.trim()) {
+                            handleChange("group", newGroupName.trim())
+                            setNewGroupName("")
+                            setIsGroupDropdownOpen(false)
+                          }
+                        }}
+                        className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* No group option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange("group", "")
+                      setIsGroupDropdownOpen(false)
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="flex-1 text-right">No group</span>
+                    {!localData.group && <Check className="w-4 h-4 text-blue-500" />}
+                  </button>
+                  
+                  {/* Existing groups */}
+                  {existingGroups.length > 0 && (
+                    <div className="border-t border-gray-100">
+                      {existingGroups.map((group) => (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => {
+                            handleChange("group", group)
+                            setIsGroupDropdownOpen(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                        >
+                          <FolderOpen className="w-4 h-4 text-blue-500" />
+                          <span className="flex-1 text-right">{group}</span>
+                          {localData.group === group && <Check className="w-4 h-4 text-blue-500" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -1279,6 +1387,96 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                 onCheckedChange={(checked) => handleChange("required", checked)}
               />
               <Label htmlFor="required">Required Node</Label>
+            </div>
+
+            {/* Group Selection for non-stage nodes */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-blue-600">
+                <FolderOpen className="w-4 h-4" />
+                Group
+              </Label>
+              <div className="relative group-dropdown-container">
+                <button
+                  type="button"
+                  onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  <span className={localData.group ? "text-gray-900" : "text-gray-500"}>
+                    {localData.group || "Select or add group..."}
+                  </span>
+                  <ChevronsUpDown className="w-4 h-4 text-gray-500" />
+                </button>
+                
+                {isGroupDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {/* Add new group */}
+                    <div className="p-2 border-b border-gray-100">
+                      <div className="flex gap-2">
+                        <Input
+                          value={newGroupName}
+                          onChange={(e) => setNewGroupName(e.target.value)}
+                          placeholder="New group name..."
+                          className="flex-1 h-8 text-sm bg-white"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newGroupName.trim()) {
+                              handleChange("group", newGroupName.trim())
+                              setNewGroupName("")
+                              setIsGroupDropdownOpen(false)
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newGroupName.trim()) {
+                              handleChange("group", newGroupName.trim())
+                              setNewGroupName("")
+                              setIsGroupDropdownOpen(false)
+                            }
+                          }}
+                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* No group option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleChange("group", "")
+                        setIsGroupDropdownOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex-1 text-right">No group</span>
+                      {!localData.group && <Check className="w-4 h-4 text-blue-500" />}
+                    </button>
+                    
+                    {/* Existing groups */}
+                    {existingGroups.length > 0 && (
+                      <div className="border-t border-gray-100">
+                        {existingGroups.map((group) => (
+                          <button
+                            key={group}
+                            type="button"
+                            onClick={() => {
+                              handleChange("group", group)
+                              setIsGroupDropdownOpen(false)
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                          >
+                            <FolderOpen className="w-4 h-4 text-blue-500" />
+                            <span className="flex-1 text-right">{group}</span>
+                            {localData.group === group && <Check className="w-4 h-4 text-blue-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-gray-200 my-4"></div>

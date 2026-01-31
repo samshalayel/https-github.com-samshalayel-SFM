@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { Handle, Position, useReactFlow } from "reactflow"
-import { Trash2, Link2 } from "lucide-react"
+import { Trash2, Link2, ChevronDown, ChevronUp, FolderOpen } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
 
 interface AlignmentGateNodeProps {
@@ -12,6 +12,8 @@ interface AlignmentGateNodeProps {
     humanPercentage?: number
     aiPercentage?: number
     alignmentType?: string
+    group?: string
+    isCollapsed?: boolean
   }
   id: string
 }
@@ -19,11 +21,23 @@ interface AlignmentGateNodeProps {
 export default function AlignmentGateNode({ data, id }: AlignmentGateNodeProps) {
   const humanPercent = typeof data.humanPercentage === "number" ? data.humanPercentage : 85
   const aiPercent = typeof data.aiPercentage === "number" ? data.aiPercentage : 15
-  const { deleteElements } = useReactFlow()
+  const { deleteElements, setNodes } = useReactFlow()
+  const isCollapsed = data.isCollapsed || false
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
     deleteElements({ nodes: [{ id }] })
+  }
+
+  const toggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, isCollapsed: !isCollapsed } }
+          : node
+      )
+    )
   }
 
   // Different gradient colors based on alignment type
@@ -60,6 +74,37 @@ export default function AlignmentGateNode({ data, id }: AlignmentGateNodeProps) 
     }
   }
 
+  // Collapsed view
+  if (isCollapsed) {
+    return (
+      <div className={`shadow-lg rounded-xl border-2 border-dashed ${getBorderColor()} bg-white min-w-[100px] overflow-hidden hover:shadow-xl transition-all duration-200 group`}>
+        <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-amber-500 border-2 border-white" />
+        
+        <div className={`px-3 py-2 bg-gradient-to-r ${getGradientColors()} flex items-center gap-2`}>
+          <button
+            onClick={toggleCollapse}
+            className="p-1 hover:bg-white/20 rounded transition-colors"
+            title="Expand node"
+          >
+            <ChevronDown className="h-4 w-4 text-white" />
+          </button>
+          <div className="flex-1 text-center">
+            <div className="text-xs font-semibold text-white truncate max-w-[80px]">{data.label}</div>
+            {data.group && (
+              <div className="flex items-center justify-center gap-1 mt-0.5">
+                <FolderOpen className="h-3 w-3 text-white/80" />
+                <span className="text-[10px] text-white/80 truncate max-w-[70px]">{data.group}</span>
+              </div>
+            )}
+          </div>
+          <Link2 className="h-4 w-4 text-white/80" />
+        </div>
+
+        <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-amber-500 border-2 border-white" />
+      </div>
+    )
+  }
+
   return (
     <div className={`shadow-lg rounded-2xl border-2 border-dashed ${getBorderColor()} bg-white min-w-[240px] max-w-[280px] overflow-hidden hover:shadow-xl transition-all duration-200 group`}>
       <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-amber-500 border-2 border-white" />
@@ -67,11 +112,26 @@ export default function AlignmentGateNode({ data, id }: AlignmentGateNodeProps) 
       {/* Top section - dashed border indicates non-blocking */}
       <div className={`px-4 py-3 flex items-center justify-between bg-gradient-to-r ${getGradientColors()} text-white`}>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleCollapse}
+            className="p-1 hover:bg-white/20 rounded transition-colors"
+            title="Collapse node"
+          >
+            <ChevronUp className="h-4 w-4 text-white" />
+          </button>
           <Link2 className="h-4 w-4" />
           <span className="text-xs font-semibold uppercase tracking-wide">Alignment</span>
         </div>
         <span className="text-[10px] px-2 py-0.5 bg-white/20 rounded-full">Non-Blocking</span>
       </div>
+
+      {/* Group badge if exists */}
+      {data.group && (
+        <div className="px-4 py-2 bg-blue-50 border-b border-dashed border-blue-100 flex items-center justify-center gap-1.5">
+          <FolderOpen className="h-3.5 w-3.5 text-blue-500" />
+          <span className="text-xs font-medium text-blue-700">{data.group}</span>
+        </div>
+      )}
 
       {/* Percentages section */}
       <div className="px-4 py-2 flex items-center justify-center gap-3 border-b border-dashed border-gray-200">

@@ -5,6 +5,10 @@ export interface NodeData {
   label: string
   description?: string
   required?: boolean
+  
+  // Group and collapse properties
+  group?: string
+  isCollapsed?: boolean
 
   // Input node properties
   dataSource?: "manual" | "api" | "database" | "file"

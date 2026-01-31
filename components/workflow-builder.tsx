@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2 } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -908,6 +908,32 @@ function WorkflowBuilderInner() {
     })
   }
 
+  const collapseAllNodes = () => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: { ...node.data, isCollapsed: true },
+      }))
+    )
+    toast({
+      title: "All nodes collapsed",
+      description: "Click on any node to expand it",
+    })
+  }
+
+  const expandAllNodes = () => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: { ...node.data, isCollapsed: false },
+      }))
+    )
+    toast({
+      title: "All nodes expanded",
+      description: "All nodes are now fully visible",
+    })
+  }
+
   const executeWorkflow = () => {
     if (nodes.length === 0) {
       toast({
@@ -1273,6 +1299,37 @@ const exportWorkflow = () => {
               <Settings className="h-4 w-4 mr-1.5" />
               Settings
             </Button>
+
+            {/* Collapse/Expand All Buttons */}
+            <div className={`h-6 w-px mx-1 ${isDarkMode ? "bg-white/10" : "bg-gray-300"}`} />
+            
+            <Button
+              onClick={collapseAllNodes}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:border-cyan-500"
+                  : "bg-transparent hover:bg-cyan-500/10 text-cyan-600 border-cyan-500"
+              }`}
+              title="Collapse all nodes"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={expandAllNodes}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-emerald-500/10 text-emerald-400 border-emerald-500/50 hover:border-emerald-500"
+                  : "bg-transparent hover:bg-emerald-500/10 text-emerald-600 border-emerald-500"
+              }`}
+              title="Expand all nodes"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Right side - Logo */}
@@ -1409,6 +1466,7 @@ const exportWorkflow = () => {
           updateNodeData={updateNodeData}
           onClose={() => setSelectedNode(null)}
           isDarkMode={isDarkMode}
+          existingGroups={[...new Set(nodes.map(n => n.data.group).filter(Boolean) as string[])]}
         />
       )}
 
