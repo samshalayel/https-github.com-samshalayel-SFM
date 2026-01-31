@@ -1044,15 +1044,62 @@ function WorkflowBuilderInner() {
   }, [nodes, setNodes])
 
   const collapseAllNodes = () => {
-    setNodes((nds) =>
-      nds.map((node) => ({
+    setNodes((nds) => {
+      // Group nodes by their group name
+      const groupedNodes: Record<string, typeof nds> = {}
+      const ungroupedNodes: typeof nds = []
+      
+      nds.forEach((node) => {
+        if (node.data.group) {
+          if (!groupedNodes[node.data.group]) {
+            groupedNodes[node.data.group] = []
+          }
+          groupedNodes[node.data.group].push(node)
+        } else {
+          ungroupedNodes.push(node)
+        }
+      })
+      
+      // Collapse ungrouped nodes individually
+      const collapsedUngrouped = ungroupedNodes.map((node) => ({
         ...node,
         data: { ...node.data, isCollapsed: true },
       }))
-    )
+      
+      // For grouped nodes: hide all except one representative node per group
+      const collapsedGrouped: typeof nds = []
+      Object.entries(groupedNodes).forEach(([groupName, groupNodes]) => {
+        // Sort by position to get the first node as representative
+        const sorted = [...groupNodes].sort((a, b) => a.position.x - b.position.x)
+        
+        // First node becomes the visible representative (collapsed)
+        const representative = sorted[0]
+        collapsedGrouped.push({
+          ...representative,
+          data: { 
+            ...representative.data, 
+            isCollapsed: true,
+            isGroupRepresentative: true,
+            hiddenGroupNodes: sorted.slice(1).map(n => n.id),
+            groupNodeCount: sorted.length,
+          },
+        })
+        
+        // Hide other nodes in the group
+        sorted.slice(1).forEach((node) => {
+          collapsedGrouped.push({
+            ...node,
+            data: { ...node.data, isCollapsed: true },
+            hidden: true,
+          })
+        })
+      })
+      
+      return [...collapsedUngrouped, ...collapsedGrouped]
+    })
     toast({
       title: "All nodes collapsed",
-      description: "Click on any node to expand it",
+      description: "Nodes in same group are merged together",
     })
   }
 
@@ -1060,7 +1107,14 @@ function WorkflowBuilderInner() {
     setNodes((nds) =>
       nds.map((node) => ({
         ...node,
-        data: { ...node.data, isCollapsed: false },
+        hidden: false, // Show all hidden nodes
+        data: { 
+          ...node.data, 
+          isCollapsed: false,
+          isGroupRepresentative: false,
+          hiddenGroupNodes: undefined,
+          groupNodeCount: undefined,
+        },
       }))
     )
     toast({
