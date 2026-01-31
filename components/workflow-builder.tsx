@@ -1035,7 +1035,7 @@ const exportWorkflow = () => {
       >
         {/* Action Buttons at Top */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleNewProjectClick}
               size="sm"
@@ -1051,20 +1051,6 @@ const exportWorkflow = () => {
             </Button>
 
             <Button
-              onClick={handleOpenSave}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-3 py-2 transition-all font-medium ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-yellow-500/10 text-yellow-500 border-yellow-500/50 hover:border-yellow-500"
-                  : "bg-transparent hover:bg-yellow-500/10 text-yellow-600 border-yellow-500"
-              }`}
-            >
-              <Save className="h-4 w-4 mr-1.5" />
-              Save
-            </Button>
-
-            <Button
               onClick={handleOpenLoad}
               size="sm"
               variant="outline"
@@ -1076,6 +1062,20 @@ const exportWorkflow = () => {
             >
               <Download className="h-4 w-4 mr-1.5" />
               Load
+            </Button>
+
+            <Button
+              onClick={handleOpenSave}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-yellow-500/10 text-yellow-500 border-yellow-500/50 hover:border-yellow-500"
+                  : "bg-transparent hover:bg-yellow-500/10 text-yellow-600 border-yellow-500"
+              }`}
+            >
+              <Save className="h-4 w-4 mr-1.5" />
+              Save
             </Button>
 
             <Button
