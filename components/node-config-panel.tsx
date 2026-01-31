@@ -260,15 +260,15 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
               </button>
               
               {isGroupDropdownOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                <div className={`absolute z-50 w-full mt-1 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} border rounded-lg shadow-lg max-h-60 overflow-auto`}>
                   {/* Add new group */}
-                  <div className="p-2 border-b border-gray-100">
+                  <div className={`p-2 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                     <div className="flex gap-2">
                       <Input
                         value={newGroupName}
                         onChange={(e) => setNewGroupName(e.target.value)}
                         placeholder="New group name..."
-                        className="flex-1 h-8 text-sm bg-white"
+                        className={`flex-1 h-8 text-sm ${isDarkMode ? 'bg-gray-700 text-white border-gray-600 placeholder:text-gray-400' : 'bg-white text-gray-900'}`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && newGroupName.trim()) {
                             handleChange("group", newGroupName.trim())
@@ -300,7 +300,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                       handleChange("group", "")
                       setIsGroupDropdownOpen(false)
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm ${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'} transition-colors`}
                   >
                     <span className="flex-1 text-right">No group</span>
                     {!localData.group && <Check className="w-4 h-4 text-blue-500" />}
@@ -308,7 +308,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                   
                   {/* Existing groups */}
                   {existingGroups.length > 0 && (
-                    <div className="border-t border-gray-100">
+                    <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                       {existingGroups.map((group) => (
                         <button
                           key={group}
@@ -317,7 +317,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                             handleChange("group", group)
                             setIsGroupDropdownOpen(false)
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-blue-50'} transition-colors`}
                         >
                           <FolderOpen className="w-4 h-4 text-blue-500" />
                           <span className="flex-1 text-right">{group}</span>
@@ -1408,15 +1408,15 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                 </button>
                 
                 {isGroupDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className={`absolute z-50 w-full mt-1 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} border rounded-lg shadow-lg max-h-60 overflow-auto`}>
                     {/* Add new group */}
-                    <div className="p-2 border-b border-gray-100">
+                    <div className={`p-2 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                       <div className="flex gap-2">
                         <Input
                           value={newGroupName}
                           onChange={(e) => setNewGroupName(e.target.value)}
                           placeholder="New group name..."
-                          className="flex-1 h-8 text-sm bg-white"
+                          className={`flex-1 h-8 text-sm ${isDarkMode ? 'bg-gray-700 text-white border-gray-600 placeholder:text-gray-400' : 'bg-white text-gray-900'}`}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && newGroupName.trim()) {
                               handleChange("group", newGroupName.trim())
@@ -1448,7 +1448,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                         handleChange("group", "")
                         setIsGroupDropdownOpen(false)
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm ${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'} transition-colors`}
                     >
                       <span className="flex-1 text-right">No group</span>
                       {!localData.group && <Check className="w-4 h-4 text-blue-500" />}
@@ -1456,7 +1456,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                     
                     {/* Existing groups */}
                     {existingGroups.length > 0 && (
-                      <div className="border-t border-gray-100">
+                      <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                         {existingGroups.map((group) => (
                           <button
                             key={group}
@@ -1465,7 +1465,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                               handleChange("group", group)
                               setIsGroupDropdownOpen(false)
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-blue-50'} transition-colors`}
                           >
                             <FolderOpen className="w-4 h-4 text-blue-500" />
                             <span className="flex-1 text-right">{group}</span>
