@@ -14,6 +14,10 @@ interface InsightNodeProps {
     insightType?: string
     group?: string
     isCollapsed?: boolean
+    isGroupRepresentative?: boolean
+    hiddenGroupNodes?: string[]
+    groupNodeCount?: number
+    groupedNodeTypes?: string[]
   }
   id: string
 }
@@ -77,8 +81,10 @@ export default function InsightNode({ data, id }: InsightNodeProps) {
 
   // Collapsed view
   if (isCollapsed) {
+    const isGroupRep = data.isGroupRepresentative && data.groupNodeCount && data.groupNodeCount > 1
+    
     return (
-      <div className={`shadow-lg rounded-xl border-2 ${getBorderColor()} bg-white min-w-[100px] overflow-hidden hover:shadow-xl transition-all duration-200 group`}>
+      <div className={`shadow-lg rounded-xl border-2 ${isGroupRep ? 'border-blue-400' : getBorderColor()} bg-white min-w-[100px] overflow-hidden hover:shadow-xl transition-all duration-200 group`}>
         <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-emerald-600 border-2 border-white" />
         
         <div className={`px-3 py-2 bg-gradient-to-r ${getGradientColors()} flex items-center gap-2`}>
@@ -95,6 +101,11 @@ export default function InsightNode({ data, id }: InsightNodeProps) {
               <div className="flex items-center justify-center gap-1 mt-0.5">
                 <FolderOpen className="h-3 w-3 text-white/80" />
                 <span className="text-[10px] text-white/80 truncate max-w-[70px]">{data.group}</span>
+                {isGroupRep && (
+                  <span className="text-[10px] bg-white/30 text-white px-1.5 py-0.5 rounded-full font-medium">
+                    {data.groupNodeCount}
+                  </span>
+                )}
               </div>
             )}
           </div>
