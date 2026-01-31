@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2 } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2, Group, Ungroup } from "lucide-react"
 import NodeLibrary from "./node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
@@ -64,6 +64,7 @@ import OutcomeNode from "./nodes/outcome-node"
 import DirectionNode from "./nodes/direction-node"
 import AlignmentGateNode from "./nodes/alignment-gate-node"
 import EvidenceNode from "./nodes/evidence-node"
+import GroupNode from "./nodes/group-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
@@ -119,6 +120,7 @@ const nodeTypes: NodeTypes = {
   "direction-node": DirectionNode,
   "alignment-gate": AlignmentGateNode,
   "evidence-node": EvidenceNode,
+  "group": GroupNode,
 }
 
 const edgeTypes: EdgeTypes = {
@@ -908,6 +910,139 @@ function WorkflowBuilderInner() {
     })
   }
 
+  // Auto-group nodes by their group property
+  const autoGroupNodes = useCallback(() => {
+    const groupedNodes = new Map<string, Node[]>()
+    const ungroupedNodes: Node[] = []
+    
+    // Separate nodes by group
+    nodes.forEach((node) => {
+      if (node.type === "group") return // Skip existing group nodes
+      
+      const groupName = node.data?.group
+      if (groupName) {
+        if (!groupedNodes.has(groupName)) {
+          groupedNodes.set(groupName, [])
+        }
+        groupedNodes.get(groupName)!.push(node)
+      } else {
+        ungroupedNodes.push(node)
+      }
+    })
+
+    if (groupedNodes.size === 0) {
+      toast({
+        title: "No groups found",
+        description: "Add groups to nodes first using the config panel",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const newNodes: Node[] = []
+    const PADDING = 40
+    const HEADER_HEIGHT = 40
+
+    // Create group nodes and position children
+    groupedNodes.forEach((groupNodes, groupName) => {
+      if (groupNodes.length === 0) return
+
+      // Calculate bounding box for the group
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      
+      groupNodes.forEach((node) => {
+        const nodeWidth = node.width || 280
+        const nodeHeight = node.height || 150
+        minX = Math.min(minX, node.position.x)
+        minY = Math.min(minY, node.position.y)
+        maxX = Math.max(maxX, node.position.x + nodeWidth)
+        maxY = Math.max(maxY, node.position.y + nodeHeight)
+      })
+
+      // Create group node
+      const groupId = `group-${groupName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}`
+      const groupNode: Node = {
+        id: groupId,
+        type: "group",
+        position: { x: minX - PADDING, y: minY - PADDING - HEADER_HEIGHT },
+        style: { 
+          width: maxX - minX + PADDING * 2, 
+          height: maxY - minY + PADDING * 2 + HEADER_HEIGHT,
+          zIndex: -1,
+        },
+        data: { label: groupName },
+        draggable: true,
+        selectable: true,
+      }
+
+      newNodes.push(groupNode)
+
+      // Update children to be parented to the group
+      groupNodes.forEach((node) => {
+        newNodes.push({
+          ...node,
+          parentId: groupId,
+          position: {
+            x: node.position.x - (minX - PADDING),
+            y: node.position.y - (minY - PADDING - HEADER_HEIGHT),
+          },
+          extent: "parent" as const,
+        })
+      })
+    })
+
+    // Add ungrouped nodes
+    ungroupedNodes.forEach((node) => {
+      newNodes.push({ ...node, parentId: undefined, extent: undefined })
+    })
+
+    setNodes(newNodes)
+    toast({
+      title: "Nodes grouped",
+      description: `Created ${groupedNodes.size} group(s)`,
+    })
+  }, [nodes, setNodes])
+
+  // Remove all group containers (ungroup)
+  const ungroupAllNodes = useCallback(() => {
+    const groupNodes = nodes.filter((n) => n.type === "group")
+    
+    if (groupNodes.length === 0) {
+      toast({
+        title: "No groups to remove",
+        description: "There are no group containers to remove",
+      })
+      return
+    }
+
+    const newNodes = nodes
+      .filter((n) => n.type !== "group")
+      .map((node) => {
+        if (node.parentId) {
+          // Find parent group position
+          const parentGroup = groupNodes.find((g) => g.id === node.parentId)
+          if (parentGroup) {
+            return {
+              ...node,
+              parentId: undefined,
+              extent: undefined,
+              position: {
+                x: node.position.x + parentGroup.position.x,
+                y: node.position.y + parentGroup.position.y,
+              },
+            }
+          }
+        }
+        return { ...node, parentId: undefined, extent: undefined }
+      })
+
+    setNodes(newNodes)
+    toast({
+      title: "Groups removed",
+      description: `Removed ${groupNodes.length} group container(s)`,
+    })
+  }, [nodes, setNodes])
+
   const collapseAllNodes = () => {
     setNodes((nds) =>
       nds.map((node) => ({
@@ -1329,6 +1464,37 @@ const exportWorkflow = () => {
               title="Expand all nodes"
             >
               <Maximize2 className="h-4 w-4" />
+            </Button>
+
+            {/* Group/Ungroup Buttons */}
+            <div className={`h-6 w-px mx-1 ${isDarkMode ? "bg-white/10" : "bg-gray-300"}`} />
+            
+            <Button
+              onClick={autoGroupNodes}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-violet-500/10 text-violet-400 border-violet-500/50 hover:border-violet-500"
+                  : "bg-transparent hover:bg-violet-500/10 text-violet-600 border-violet-500"
+              }`}
+              title="Group nodes by group name"
+            >
+              <Group className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={ungroupAllNodes}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-rose-500/10 text-rose-400 border-rose-500/50 hover:border-rose-500"
+                  : "bg-transparent hover:bg-rose-500/10 text-rose-600 border-rose-500"
+              }`}
+              title="Remove all group containers"
+            >
+              <Ungroup className="h-4 w-4" />
             </Button>
           </div>
 
