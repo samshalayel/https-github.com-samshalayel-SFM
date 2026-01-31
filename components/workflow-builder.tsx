@@ -1105,15 +1105,13 @@ const exportWorkflow = () => {
               <FileInput className="h-4 w-4 mr-1.5" />
               Import
             </Button>
-            </div>
 
-          <div className="mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`rounded-lg px-3 py-2 transition-all font-medium flex-1 ${
+                  className={`rounded-lg px-3 py-2 transition-all font-medium w-full ${
                     isDarkMode
                       ? "bg-transparent hover:bg-teal-500/10 text-teal-400 border-teal-500/50 hover:border-teal-500"
                       : "bg-transparent hover:bg-teal-500/10 text-teal-600 border-teal-500"
@@ -1177,8 +1175,7 @@ const exportWorkflow = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            </div>
+          </div>
         </div>
 
         {/* Project Name Display */}
