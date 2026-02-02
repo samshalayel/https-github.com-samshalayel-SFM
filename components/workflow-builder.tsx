@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 import type React from "react"
 import { useState, useCallback, useRef, useEffect } from "react"
@@ -1565,21 +1566,19 @@ const exportWorkflow = () => {
 
           {/* Right side - Logo */}
           <div className="flex items-center gap-2">
-            <div
-              className={`w-9 h-9 rounded-xl shadow-lg flex items-center justify-center ${
-                isDarkMode
-                  ? "bg-gradient-to-br from-[#f26522] to-[#ff8c42] shadow-[#f26522]/40"
-                  : "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-purple-500/30"
-              }`}
-            >
-              <span className="text-white font-bold text-base">S</span>
-            </div>
+            <Image
+              src="/company-logo.png"
+              alt="SFM Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
             <div>
               <h1 className={`text-xl font-bold tracking-tight ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                SILLAR
+                SFM
               </h1>
               <p className={`text-xs font-medium ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
-                AI-Powered Workflow Platform
+                Software Factory Model
               </p>
             </div>
           </div>

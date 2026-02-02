@@ -179,10 +179,10 @@ export default function LoginPage() {
           />
           
           {/* Title */}
-          <h2 className="mt-8 text-4xl font-bold tracking-wide text-white">SILLAR</h2>
+          <h2 className="mt-8 text-4xl font-bold tracking-wide text-white">SFM</h2>
           
           {/* Subtitle */}
-          <p className="mt-3 text-lg text-gray-400">AI-Powered Workflow Platform</p>
+          <p className="mt-3 text-lg text-gray-400">Software Factory Model</p>
           
           {/* Feature badges */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">

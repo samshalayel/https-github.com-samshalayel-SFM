@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Seesaw Model",
+  title: "SFM - Software Factory Model",
   description: "AI-powered software factory workflow builder for structured product development",
   generator: "v0.app",
   icons: {
