@@ -32,19 +32,30 @@ function getColorByName(name: string) {
   return GROUP_COLORS[index]
 }
 
+const COLLAPSED_HEIGHT = 50
+const COLLAPSED_WIDTH = 200
+
 const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) => {
   const groupName = data.label || "Group"
   const colors = getColorByName(groupName)
   const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed || false)
-  const { setNodes } = useReactFlow()
+  const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null)
+  const { setNodes, getNode } = useReactFlow()
 
   const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     setIsCollapsed(false)
-    // Show child nodes
+    
+    // Restore original size and show child nodes
     setNodes((nodes) =>
       nodes.map((node) => {
+        if (node.id === id && originalSize) {
+          return {
+            ...node,
+            style: { ...node.style, width: originalSize.width, height: originalSize.height },
+          }
+        }
         if (node.parentId === id) {
           return { ...node, hidden: false }
         }
@@ -56,10 +67,26 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
   const handleCollapse = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    
+    // Save current size before collapsing
+    const currentNode = getNode(id)
+    if (currentNode) {
+      const width = (currentNode.style?.width as number) || currentNode.width || 300
+      const height = (currentNode.style?.height as number) || currentNode.height || 200
+      setOriginalSize({ width, height })
+    }
+    
     setIsCollapsed(true)
-    // Hide child nodes
+    
+    // Shrink group and hide child nodes
     setNodes((nodes) =>
       nodes.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            style: { ...node.style, width: COLLAPSED_WIDTH, height: COLLAPSED_HEIGHT },
+          }
+        }
         if (node.parentId === id) {
           return { ...node, hidden: true }
         }
