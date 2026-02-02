@@ -90,9 +90,14 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
           </div>
           
           {/* Control Buttons */}
-          <div className="flex items-center gap-1">
+          <div 
+            className="flex items-center gap-1"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Expand Button */}
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={handleExpand}
               className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors ${!isCollapsed ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Expand group"
@@ -103,6 +108,7 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
             
             {/* Collapse Button */}
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={handleCollapse}
               className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors ${isCollapsed ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Collapse group"
