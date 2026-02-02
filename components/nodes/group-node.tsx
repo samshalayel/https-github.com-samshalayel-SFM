@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { memo, useState } from "react"
-import { NodeResizer, type NodeProps } from "reactflow"
+import { NodeResizer, type NodeProps, useReactFlow } from "reactflow"
 import { FolderOpen, Plus, Minus } from "lucide-react"
 
 interface GroupNodeData {
@@ -36,17 +36,36 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
   const groupName = data.label || "Group"
   const colors = getColorByName(groupName)
   const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed || false)
+  const { setNodes } = useReactFlow()
 
   const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     setIsCollapsed(false)
+    // Show child nodes
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.parentId === id) {
+          return { ...node, hidden: false }
+        }
+        return node
+      })
+    )
   }
 
   const handleCollapse = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     setIsCollapsed(true)
+    // Hide child nodes
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.parentId === id) {
+          return { ...node, hidden: true }
+        }
+        return node
+      })
+    )
   }
 
   return (
