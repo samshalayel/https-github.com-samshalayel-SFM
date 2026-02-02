@@ -41,15 +41,21 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
 
   const handleAddNode = (e: React.MouseEvent) => {
     e.stopPropagation()
+    console.log("[v0] handleAddNode called, onAddNode exists:", !!data.onAddNode)
     if (data.onAddNode) {
       data.onAddNode(id)
+    } else {
+      console.log("[v0] onAddNode is not defined in data:", data)
     }
   }
 
   const handleRemoveNode = (e: React.MouseEvent) => {
     e.stopPropagation()
+    console.log("[v0] handleRemoveNode called, onRemoveNode exists:", !!data.onRemoveNode)
     if (data.onRemoveNode) {
       data.onRemoveNode(id)
+    } else {
+      console.log("[v0] onRemoveNode is not defined in data:", data)
     }
   }
 
