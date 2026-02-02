@@ -911,6 +911,68 @@ function WorkflowBuilderInner() {
     })
   }
 
+  // Add node to a group
+  const handleAddNodeToGroup = useCallback((groupId: string) => {
+    // Find the group node to get its label
+    const groupNode = nodes.find(n => n.id === groupId)
+    if (!groupNode) return
+
+    const groupName = groupNode.data?.label || "Group"
+    
+    // Create a new stage node inside the group
+    const newNodeId = `node-${Date.now()}`
+    const newNode: Node = {
+      id: newNodeId,
+      type: "stage",
+      position: { x: 50, y: 60 },
+      parentId: groupId,
+      extent: "parent" as const,
+      data: {
+        label: `New Stage`,
+        stageType: "Development",
+        group: groupName,
+        steps: [],
+      },
+    }
+
+    setNodes((nds) => [...nds, newNode])
+    toast({
+      title: "Node added",
+      description: `Added new node to "${groupName}"`,
+    })
+  }, [nodes, setNodes])
+
+  // Remove last node from a group
+  const handleRemoveNodeFromGroup = useCallback((groupId: string) => {
+    const groupNode = nodes.find(n => n.id === groupId)
+    if (!groupNode) return
+
+    const groupName = groupNode.data?.label || "Group"
+    
+    // Find all nodes in this group (excluding the group node itself)
+    const childNodes = nodes.filter(n => n.parentId === groupId && n.type !== "group")
+    
+    if (childNodes.length === 0) {
+      toast({
+        title: "No nodes to remove",
+        description: `The group "${groupName}" is empty`,
+      })
+      return
+    }
+
+    // Remove the last child node
+    const lastChildId = childNodes[childNodes.length - 1].id
+    setNodes((nds) => nds.filter(n => n.id !== lastChildId))
+    
+    // Also remove any edges connected to this node
+    setEdges((eds) => eds.filter(e => e.source !== lastChildId && e.target !== lastChildId))
+    
+    toast({
+      title: "Node removed",
+      description: `Removed node from "${groupName}"`,
+    })
+  }, [nodes, setNodes, setEdges])
+
   // Auto-group nodes by their group property
   const autoGroupNodes = useCallback(() => {
     const groupedNodes = new Map<string, Node[]>()
@@ -971,7 +1033,11 @@ function WorkflowBuilderInner() {
           height: maxY - minY + PADDING * 2 + HEADER_HEIGHT,
           zIndex: -1,
         },
-        data: { label: groupName },
+        data: { 
+          label: groupName,
+          onAddNode: handleAddNodeToGroup,
+          onRemoveNode: handleRemoveNodeFromGroup,
+        },
         draggable: true,
         selectable: true,
       }
@@ -1002,7 +1068,7 @@ function WorkflowBuilderInner() {
       title: "Nodes grouped",
       description: `Created ${groupedNodes.size} group(s)`,
     })
-  }, [nodes, setNodes])
+  }, [nodes, setNodes, handleAddNodeToGroup, handleRemoveNodeFromGroup])
 
   // Remove all group containers (ungroup)
   const ungroupAllNodes = useCallback(() => {
