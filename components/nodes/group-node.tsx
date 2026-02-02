@@ -2,9 +2,8 @@
 
 import type React from "react"
 import { memo, useState } from "react"
-import { NodeResizer, type NodeProps, useReactFlow } from "reactflow"
-import { FolderOpen, Plus, Minus, ChevronDown, ChevronUp } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { NodeResizer, type NodeProps } from "reactflow"
+import { FolderOpen, Plus, Minus } from "lucide-react"
 
 interface GroupNodeData {
   label: string
@@ -37,69 +36,17 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
   const groupName = data.label || "Group"
   const colors = getColorByName(groupName)
   const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed || false)
-  const { getNodes, setNodes, setEdges } = useReactFlow()
-  const { toast } = useToast()
 
-  const handleAddNode = (e: React.MouseEvent) => {
+  const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    
-    // Create a new stage node inside the group
-    const newNodeId = `node-${Date.now()}`
-    const newNode = {
-      id: newNodeId,
-      type: "stage",
-      position: { x: 50, y: 60 },
-      parentId: id,
-      extent: "parent" as const,
-      data: {
-        label: `New Stage`,
-        stageType: "Development",
-        group: groupName,
-        steps: [],
-      },
-    }
-
-    setNodes((nds) => [...nds, newNode])
-    toast({
-      title: "Node added",
-      description: `Added new node to "${groupName}"`,
-    })
+    setIsCollapsed(false)
   }
 
-  const handleRemoveNode = (e: React.MouseEvent) => {
+  const handleCollapse = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    
-    const nodes = getNodes()
-    // Find all nodes in this group (excluding the group node itself)
-    const childNodes = nodes.filter(n => n.parentId === id && n.type !== "group")
-    
-    if (childNodes.length === 0) {
-      toast({
-        title: "No nodes to remove",
-        description: `The group "${groupName}" is empty`,
-      })
-      return
-    }
-
-    // Remove the last child node
-    const lastChildId = childNodes[childNodes.length - 1].id
-    setNodes((nds) => nds.filter(n => n.id !== lastChildId))
-    
-    // Also remove any edges connected to this node
-    setEdges((eds) => eds.filter(e => e.source !== lastChildId && e.target !== lastChildId))
-    
-    toast({
-      title: "Node removed",
-      description: `Removed node from "${groupName}"`,
-    })
-  }
-
-  const handleToggleCollapse = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setIsCollapsed(!isCollapsed)
+    setIsCollapsed(true)
   }
 
   return (
@@ -125,31 +72,24 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
           
           {/* Control Buttons */}
           <div className="flex items-center gap-1">
-            {/* Add Button */}
+            {/* Expand Button */}
             <button
-              onClick={handleAddNode}
-              className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors`}
-              title="Add node to group"
+              onClick={handleExpand}
+              className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors ${!isCollapsed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Expand group"
+              disabled={!isCollapsed}
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
             
-            {/* Remove Button */}
+            {/* Collapse Button */}
             <button
-              onClick={handleRemoveNode}
-              className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors`}
-              title="Remove node from group"
+              onClick={handleCollapse}
+              className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors ${isCollapsed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Collapse group"
+              disabled={isCollapsed}
             >
               <Minus className="h-3.5 w-3.5" />
-            </button>
-
-            {/* Collapse/Expand Button */}
-            <button
-              onClick={handleToggleCollapse}
-              className={`p-1 rounded ${colors.btnBg} ${colors.darkBtnBg} ${colors.text} ${colors.darkText} transition-colors`}
-              title={isCollapsed ? "Expand group" : "Collapse group"}
-            >
-              {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
             </button>
           </div>
         </div>
