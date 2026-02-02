@@ -913,8 +913,10 @@ function WorkflowBuilderInner() {
 
   // Add node to a group
   const handleAddNodeToGroup = useCallback((groupId: string) => {
+    console.log("[v0] handleAddNodeToGroup called with groupId:", groupId)
     // Find the group node to get its label
     const groupNode = nodes.find(n => n.id === groupId)
+    console.log("[v0] Found groupNode:", groupNode)
     if (!groupNode) return
 
     const groupName = groupNode.data?.label || "Group"
@@ -944,7 +946,9 @@ function WorkflowBuilderInner() {
 
   // Remove last node from a group
   const handleRemoveNodeFromGroup = useCallback((groupId: string) => {
+    console.log("[v0] handleRemoveNodeFromGroup called with groupId:", groupId)
     const groupNode = nodes.find(n => n.id === groupId)
+    console.log("[v0] Found groupNode for remove:", groupNode)
     if (!groupNode) return
 
     const groupName = groupNode.data?.label || "Group"
