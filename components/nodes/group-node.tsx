@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { memo, useState } from "react"
-import { NodeResizer, type NodeProps, useReactFlow } from "reactflow"
+import { NodeResizer, type NodeProps, useReactFlow, Handle, Position } from "reactflow"
 import { FolderOpen, Plus, Minus } from "lucide-react"
 
 interface GroupNodeData {
@@ -40,20 +40,28 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
   const colors = getColorByName(groupName)
   const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed || false)
   const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null)
-  const { setNodes, getNode } = useReactFlow()
+  const { setNodes, setEdges, getNodes, getEdges, getNode } = useReactFlow()
 
   const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     setIsCollapsed(false)
     
+    const nodes = getNodes()
+    const childNodeIds = nodes.filter(n => n.parentId === id).map(n => n.id)
+    
     // Restore original size and show child nodes
-    setNodes((nodes) =>
-      nodes.map((node) => {
+    setNodes((nds) =>
+      nds.map((node) => {
         if (node.id === id && originalSize) {
           return {
             ...node,
-            style: { ...node.style, width: originalSize.width, height: originalSize.height },
+            style: { 
+              ...node.style, 
+              width: originalSize.width, 
+              height: originalSize.height,
+              transition: 'width 0.3s ease, height 0.3s ease'
+            },
           }
         }
         if (node.parentId === id) {
@@ -61,6 +69,19 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
         }
         return node
       })
+    )
+    
+    // Restore original edges and remove group-level edges
+    setEdges((eds) =>
+      eds
+        .filter(e => !e.id.startsWith(`group-edge-${id}`)) // Remove group-level edges
+        .map(e => {
+          // Unhide edges connected to child nodes
+          if (childNodeIds.includes(e.source) || childNodeIds.includes(e.target)) {
+            return { ...e, hidden: false }
+          }
+          return e
+        })
     )
   }
 
@@ -78,13 +99,46 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     
     setIsCollapsed(true)
     
+    const nodes = getNodes()
+    const edges = getEdges()
+    const childNodeIds = nodes.filter(n => n.parentId === id).map(n => n.id)
+    
+    // Find edges that connect to nodes outside this group
+    const externalConnections = new Map<string, { isSource: boolean }>()
+    
+    edges.forEach(edge => {
+      const sourceInGroup = childNodeIds.includes(edge.source)
+      const targetInGroup = childNodeIds.includes(edge.target)
+      
+      if (sourceInGroup && !targetInGroup) {
+        // Find the target's parent group
+        const targetNode = nodes.find(n => n.id === edge.target)
+        const targetGroupId = targetNode?.parentId || edge.target
+        if (targetGroupId !== id) {
+          externalConnections.set(targetGroupId, { isSource: true })
+        }
+      } else if (!sourceInGroup && targetInGroup) {
+        // Find the source's parent group
+        const sourceNode = nodes.find(n => n.id === edge.source)
+        const sourceGroupId = sourceNode?.parentId || edge.source
+        if (sourceGroupId !== id) {
+          externalConnections.set(sourceGroupId, { isSource: false })
+        }
+      }
+    })
+    
     // Shrink group and hide child nodes
-    setNodes((nodes) =>
-      nodes.map((node) => {
+    setNodes((nds) =>
+      nds.map((node) => {
         if (node.id === id) {
           return {
             ...node,
-            style: { ...node.style, width: COLLAPSED_WIDTH, height: COLLAPSED_HEIGHT },
+            style: { 
+              ...node.style, 
+              width: COLLAPSED_WIDTH, 
+              height: COLLAPSED_HEIGHT,
+              transition: 'width 0.3s ease, height 0.3s ease'
+            },
           }
         }
         if (node.parentId === id) {
@@ -93,6 +147,33 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
         return node
       })
     )
+    
+    // Hide edges to child nodes and create group-level edges
+    setEdges((eds) => {
+      const newEdges = eds.map(e => {
+        if (childNodeIds.includes(e.source) || childNodeIds.includes(e.target)) {
+          return { ...e, hidden: true }
+        }
+        return e
+      })
+      
+      // Add group-level edges
+      externalConnections.forEach((connection, targetGroupId) => {
+        const groupEdgeId = `group-edge-${id}-${targetGroupId}`
+        if (!newEdges.find(e => e.id === groupEdgeId)) {
+          newEdges.push({
+            id: groupEdgeId,
+            source: connection.isSource ? id : targetGroupId,
+            target: connection.isSource ? targetGroupId : id,
+            type: 'default',
+            animated: true,
+            style: { stroke: '#888', strokeWidth: 2, strokeDasharray: '5,5' },
+          })
+        }
+      })
+      
+      return newEdges
+    })
   }
 
   return (
@@ -105,8 +186,24 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
         handleClassName="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full"
       />
       
+      {/* Handles for group-level connections when collapsed */}
+      {isCollapsed && (
+        <>
+          <Handle
+            type="target"
+            position={Position.Left}
+            className="!w-3 !h-3 !bg-gray-400 !border-2 !border-white"
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="!w-3 !h-3 !bg-gray-400 !border-2 !border-white"
+          />
+        </>
+      )}
+      
       <div
-        className={`w-full h-full ${colors.bg} ${colors.darkBg} ${colors.border} ${colors.darkBorder} border-2 border-dashed rounded-xl overflow-hidden transition-all duration-200`}
+        className={`w-full h-full ${colors.bg} ${colors.darkBg} ${colors.border} ${colors.darkBorder} border-2 border-dashed rounded-xl overflow-hidden transition-all duration-300`}
         style={{ minWidth: 200, minHeight: isCollapsed ? 50 : 150 }}
       >
         {/* Group Header */}
