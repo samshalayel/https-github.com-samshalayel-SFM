@@ -103,26 +103,32 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     const edges = getEdges()
     const childNodeIds = nodes.filter(n => n.parentId === id).map(n => n.id)
     
-    // Find edges that connect to nodes outside this group
-    const externalConnections = new Map<string, { isSource: boolean }>()
+    // Find external connections - track unique target groups/nodes
+    // Key: targetId (group or node), Value: { isSource, targetNodeId }
+    const externalConnections = new Map<string, { isSource: boolean; originalTarget: string }>()
     
     edges.forEach(edge => {
+      // Skip already hidden edges or group edges
+      if (edge.hidden || edge.id.startsWith('group-edge-')) return
+      
       const sourceInGroup = childNodeIds.includes(edge.source)
       const targetInGroup = childNodeIds.includes(edge.target)
       
       if (sourceInGroup && !targetInGroup) {
-        // Find the target's parent group
+        // This group is the source, find what to connect to
         const targetNode = nodes.find(n => n.id === edge.target)
-        const targetGroupId = targetNode?.parentId || edge.target
-        if (targetGroupId !== id) {
-          externalConnections.set(targetGroupId, { isSource: true })
+        // If target is in a group, connect to that group; otherwise connect to the node directly
+        const connectTo = targetNode?.parentId || edge.target
+        if (connectTo !== id) {
+          // Use a key that creates ONE edge per external group/node
+          externalConnections.set(`out-${connectTo}`, { isSource: true, originalTarget: connectTo })
         }
       } else if (!sourceInGroup && targetInGroup) {
-        // Find the source's parent group
+        // This group is the target, find what connects to us
         const sourceNode = nodes.find(n => n.id === edge.source)
-        const sourceGroupId = sourceNode?.parentId || edge.source
-        if (sourceGroupId !== id) {
-          externalConnections.set(sourceGroupId, { isSource: false })
+        const connectFrom = sourceNode?.parentId || edge.source
+        if (connectFrom !== id) {
+          externalConnections.set(`in-${connectFrom}`, { isSource: false, originalTarget: connectFrom })
         }
       }
     })
@@ -148,23 +154,34 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
       })
     )
     
-    // Hide edges to child nodes and create group-level edges
+    // Hide edges from/to child nodes and create group-level edges
     setEdges((eds) => {
       const newEdges = eds.map(e => {
-        if (childNodeIds.includes(e.source) || childNodeIds.includes(e.target)) {
+        // Hide edges connected to our child nodes (but not group edges)
+        if (!e.id.startsWith('group-edge-') && 
+            (childNodeIds.includes(e.source) || childNodeIds.includes(e.target))) {
           return { ...e, hidden: true }
         }
         return e
       })
       
-      // Add group-level edges
-      externalConnections.forEach((connection, targetGroupId) => {
-        const groupEdgeId = `group-edge-${id}-${targetGroupId}`
-        if (!newEdges.find(e => e.id === groupEdgeId)) {
+      // Add group-level edges - one per external connection
+      externalConnections.forEach((connection) => {
+        const sortedIds = [id, connection.originalTarget].sort()
+        const groupEdgeId = `group-edge-${sortedIds[0]}-${sortedIds[1]}-${connection.isSource ? 'out' : 'in'}`
+        
+        // Check if similar edge already exists
+        const existingEdge = newEdges.find(e => 
+          e.id.startsWith('group-edge-') && 
+          ((e.source === id && e.target === connection.originalTarget) ||
+           (e.target === id && e.source === connection.originalTarget))
+        )
+        
+        if (!existingEdge) {
           newEdges.push({
             id: groupEdgeId,
-            source: connection.isSource ? id : targetGroupId,
-            target: connection.isSource ? targetGroupId : id,
+            source: connection.isSource ? id : connection.originalTarget,
+            target: connection.isSource ? connection.originalTarget : id,
             type: 'default',
             animated: true,
             style: { stroke: '#888', strokeWidth: 2, strokeDasharray: '5,5' },
@@ -186,21 +203,19 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
         handleClassName="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full"
       />
       
-      {/* Handles for group-level connections when collapsed */}
-      {isCollapsed && (
-        <>
-          <Handle
-            type="target"
-            position={Position.Left}
-            className="!w-3 !h-3 !bg-gray-400 !border-2 !border-white"
-          />
-          <Handle
-            type="source"
-            position={Position.Right}
-            className="!w-3 !h-3 !bg-gray-400 !border-2 !border-white"
-          />
-        </>
-      )}
+      {/* Handles for group-level connections - always present but styled differently when collapsed */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={`!w-3 !h-3 !border-2 !border-white ${isCollapsed ? '!bg-gray-400' : '!bg-transparent !border-transparent'}`}
+        style={{ opacity: isCollapsed ? 1 : 0 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className={`!w-3 !h-3 !border-2 !border-white ${isCollapsed ? '!bg-gray-400' : '!bg-transparent !border-transparent'}`}
+        style={{ opacity: isCollapsed ? 1 : 0 }}
+      />
       
       <div
         className={`w-full h-full ${colors.bg} ${colors.darkBg} ${colors.border} ${colors.darkBorder} border-2 border-dashed rounded-xl overflow-hidden transition-all duration-300`}
