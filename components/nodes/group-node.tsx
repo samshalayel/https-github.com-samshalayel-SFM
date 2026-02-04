@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { memo, useState } from "react"
+import React, { memo, useState, useEffect } from "react"
 import { NodeResizer, type NodeProps, useReactFlow, Handle, Position } from "reactflow"
 import { FolderOpen, Plus, Minus } from "lucide-react"
 
@@ -9,6 +8,11 @@ interface GroupNodeData {
   label: string
   color?: string
   isCollapsed?: boolean
+  originalSize?: { width: number; height: number }
+  // Store hidden edge IDs so we can restore them properly
+  hiddenEdgeIds?: string[]
+  // Store the child node positions relative to group before collapse
+  childPositions?: Record<string, { x: number; y: number }>
 }
 
 const GROUP_COLORS = [
@@ -38,28 +42,45 @@ const COLLAPSED_WIDTH = 200
 const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) => {
   const groupName = data.label || "Group"
   const colors = getColorByName(groupName)
+  // Use data.isCollapsed as source of truth, local state only for UI reactivity
   const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed || false)
-  const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null)
   const { setNodes, setEdges, getNodes, getEdges, getNode } = useReactFlow()
+
+  // Sync local state with data.isCollapsed when it changes (e.g., after load)
+  useEffect(() => {
+    if (data.isCollapsed !== undefined && data.isCollapsed !== isCollapsed) {
+      setIsCollapsed(data.isCollapsed)
+    }
+  }, [data.isCollapsed])
 
   const handleExpand = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    
+    const currentNode = getNode(id)
+    const originalSize = currentNode?.data?.originalSize || data.originalSize
+    const hiddenEdgeIds = currentNode?.data?.hiddenEdgeIds || data.hiddenEdgeIds || []
+    
     setIsCollapsed(false)
     
     const nodes = getNodes()
     const childNodeIds = nodes.filter(n => n.parentId === id).map(n => n.id)
     
-    // Restore original size and show child nodes
+    // Restore original size, show child nodes, and update data.isCollapsed
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.id === id && originalSize) {
+        if (node.id === id) {
           return {
             ...node,
+            data: {
+              ...node.data,
+              isCollapsed: false,
+              // Keep originalSize and hiddenEdgeIds for future collapses
+            },
             style: { 
               ...node.style, 
-              width: originalSize.width, 
-              height: originalSize.height,
+              width: originalSize?.width || 300, 
+              height: originalSize?.height || 200,
               transition: 'width 0.3s ease, height 0.3s ease'
             },
           }
@@ -74,10 +95,17 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     // Restore original edges and remove group-level edges
     setEdges((eds) =>
       eds
-        .filter(e => !e.id.startsWith(`group-edge-${id}`)) // Remove group-level edges
+        .filter(e => {
+          // Remove group-level edges that belong to this group
+          if (e.id.startsWith('group-edge-')) {
+            // Check if this group edge involves our group
+            return !(e.source === id || e.target === id)
+          }
+          return true
+        })
         .map(e => {
-          // Unhide edges connected to child nodes
-          if (childNodeIds.includes(e.source) || childNodeIds.includes(e.target)) {
+          // Unhide edges that were hidden during collapse
+          if (hiddenEdgeIds.includes(e.id) || childNodeIds.includes(e.source) || childNodeIds.includes(e.target)) {
             return { ...e, hidden: false }
           }
           return e
@@ -91,10 +119,11 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     
     // Save current size before collapsing
     const currentNode = getNode(id)
+    let originalSize = { width: 300, height: 200 }
     if (currentNode) {
       const width = (currentNode.style?.width as number) || currentNode.width || 300
       const height = (currentNode.style?.height as number) || currentNode.height || 200
-      setOriginalSize({ width, height })
+      originalSize = { width, height }
     }
     
     setIsCollapsed(true)
@@ -103,8 +132,10 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     const edges = getEdges()
     const childNodeIds = nodes.filter(n => n.parentId === id).map(n => n.id)
     
+    // Track edges that will be hidden so we can restore them
+    const hiddenEdgeIds: string[] = []
+    
     // Find external connections - track unique target groups/nodes
-    // Key: targetId (group or node), Value: { isSource, targetNodeId }
     const externalConnections = new Map<string, { isSource: boolean; originalTarget: string }>()
     
     edges.forEach(edge => {
@@ -114,17 +145,18 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
       const sourceInGroup = childNodeIds.includes(edge.source)
       const targetInGroup = childNodeIds.includes(edge.target)
       
+      // Track edges to hide
+      if (sourceInGroup || targetInGroup) {
+        hiddenEdgeIds.push(edge.id)
+      }
+      
       if (sourceInGroup && !targetInGroup) {
-        // This group is the source, find what to connect to
         const targetNode = nodes.find(n => n.id === edge.target)
-        // If target is in a group, connect to that group; otherwise connect to the node directly
         const connectTo = targetNode?.parentId || edge.target
         if (connectTo !== id) {
-          // Use a key that creates ONE edge per external group/node
           externalConnections.set(`out-${connectTo}`, { isSource: true, originalTarget: connectTo })
         }
       } else if (!sourceInGroup && targetInGroup) {
-        // This group is the target, find what connects to us
         const sourceNode = nodes.find(n => n.id === edge.source)
         const connectFrom = sourceNode?.parentId || edge.source
         if (connectFrom !== id) {
@@ -133,12 +165,18 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
       }
     })
     
-    // Shrink group and hide child nodes
+    // Shrink group, hide child nodes, and save state in node data
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === id) {
           return {
             ...node,
+            data: {
+              ...node.data,
+              isCollapsed: true,
+              originalSize: originalSize,
+              hiddenEdgeIds: hiddenEdgeIds,
+            },
             style: { 
               ...node.style, 
               width: COLLAPSED_WIDTH, 
@@ -157,7 +195,6 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
     // Hide edges from/to child nodes and create group-level edges
     setEdges((eds) => {
       const newEdges = eds.map(e => {
-        // Hide edges connected to our child nodes (but not group edges)
         if (!e.id.startsWith('group-edge-') && 
             (childNodeIds.includes(e.source) || childNodeIds.includes(e.target))) {
           return { ...e, hidden: true }
@@ -170,7 +207,6 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
         const sortedIds = [id, connection.originalTarget].sort()
         const groupEdgeId = `group-edge-${sortedIds[0]}-${sortedIds[1]}-${connection.isSource ? 'out' : 'in'}`
         
-        // Check if similar edge already exists
         const existingEdge = newEdges.find(e => 
           e.id.startsWith('group-edge-') && 
           ((e.source === id && e.target === connection.originalTarget) ||
@@ -182,7 +218,7 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
             id: groupEdgeId,
             source: connection.isSource ? id : connection.originalTarget,
             target: connection.isSource ? connection.originalTarget : id,
-            type: 'default',
+            type: 'custom',
             animated: true,
             style: { stroke: '#888', strokeWidth: 2, strokeDasharray: '5,5' },
           })

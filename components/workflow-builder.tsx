@@ -900,8 +900,38 @@ function WorkflowBuilderInner() {
   }
 
   const handleLoadWorkflow = (workflow: { nodes: any[]; edges: any[]; name?: string }) => {
-    setNodes(workflow.nodes)
-    setEdges(workflow.edges)
+    // Process nodes to ensure collapsed groups have their children hidden
+    const processedNodes = workflow.nodes.map(node => {
+      // Check if this node's parent group is collapsed
+      if (node.parentId) {
+        const parentGroup = workflow.nodes.find(n => n.id === node.parentId)
+        if (parentGroup?.data?.isCollapsed) {
+          return { ...node, hidden: true }
+        }
+      }
+      return node
+    })
+    
+    // Process edges to ensure hidden edges stay hidden for collapsed groups
+    const collapsedGroupIds = workflow.nodes
+      .filter(n => n.type === 'group' && n.data?.isCollapsed)
+      .map(n => n.id)
+    
+    const childNodeIds = workflow.nodes
+      .filter(n => n.parentId && collapsedGroupIds.includes(n.parentId))
+      .map(n => n.id)
+    
+    const processedEdges = workflow.edges.map(edge => {
+      // Keep group edges visible, hide child node edges for collapsed groups
+      if (!edge.id?.startsWith('group-edge-') && 
+          (childNodeIds.includes(edge.source) || childNodeIds.includes(edge.target))) {
+        return { ...edge, hidden: true }
+      }
+      return edge
+    })
+    
+    setNodes(processedNodes)
+    setEdges(processedEdges)
     if (workflow.name) {
       setCurrentProjectName(workflow.name)
     }
