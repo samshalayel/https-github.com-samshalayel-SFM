@@ -783,10 +783,199 @@ function WorkflowBuilderInner() {
     }, 100)
   }
 
+  // Helper: resize a group node to fit all its children with padding
+  const resizeGroupToFitChildren = useCallback((groupId: string, currentNodes: Node[]) => {
+    const PADDING = 40
+    const HEADER_HEIGHT = 40
+    const children = currentNodes.filter(n => n.parentId === groupId && !n.hidden)
+    if (children.length === 0) return currentNodes
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    children.forEach((child) => {
+      const w = child.width || 280
+      const h = child.height || 150
+      minX = Math.min(minX, child.position.x)
+      minY = Math.min(minY, child.position.y)
+      maxX = Math.max(maxX, child.position.x + w)
+      maxY = Math.max(maxY, child.position.y + h)
+    })
+
+    const newWidth = maxX - minX + PADDING * 2
+    const newHeight = maxY - minY + PADDING * 2 + HEADER_HEIGHT
+
+    return currentNodes.map(n => {
+      if (n.id === groupId) {
+        return {
+          ...n,
+          style: {
+            ...n.style,
+            width: Math.max(newWidth, 300),
+            height: Math.max(newHeight, 200),
+          },
+        }
+      }
+      return n
+    })
+  }, [])
+
   const onConnect = useCallback(
-    (params: Edge | Connection) => setEdges((eds) => addEdge({ ...params, type: "custom" }, eds)),
-    [setEdges],
+    (params: Edge | Connection) => {
+      // First, add the edge
+      setEdges((eds) => addEdge({ ...params, type: "custom" }, eds))
+
+      // Then, check if we need to dynamically add a node to a group
+      setNodes((nds) => {
+        const sourceNode = nds.find(n => n.id === params.source)
+        const targetNode = nds.find(n => n.id === params.target)
+        if (!sourceNode || !targetNode) return nds
+
+        const sourceInGroup = sourceNode.parentId && nds.find(n => n.id === sourceNode.parentId && n.type === "group")
+        const targetInGroup = targetNode.parentId && nds.find(n => n.id === targetNode.parentId && n.type === "group")
+
+        // Case 1: source is in a group, target is NOT in any group -> add target to source's group
+        // Case 2: target is in a group, source is NOT in any group -> add source to target's group
+        // If both are in groups or neither, do nothing
+        let nodeToAdd: Node | null = null
+        let groupNode: Node | null = null
+
+        if (sourceInGroup && !targetInGroup && targetNode.type !== "group") {
+          nodeToAdd = targetNode
+          groupNode = nds.find(n => n.id === sourceNode.parentId)!
+        } else if (targetInGroup && !sourceInGroup && sourceNode.type !== "group") {
+          nodeToAdd = sourceNode
+          groupNode = nds.find(n => n.id === targetNode.parentId)!
+        }
+
+        if (!nodeToAdd || !groupNode) return nds
+
+        // Convert absolute position to relative (inside the group)
+        const relativeX = nodeToAdd.position.x - groupNode.position.x
+        const relativeY = nodeToAdd.position.y - groupNode.position.y
+
+        let updatedNodes = nds.map(n => {
+          if (n.id === nodeToAdd!.id) {
+            return {
+              ...n,
+              parentId: groupNode!.id,
+              extent: "parent" as const,
+              position: {
+                x: Math.max(40, relativeX),
+                y: Math.max(50, relativeY),
+              },
+              data: {
+                ...n.data,
+                group: groupNode!.data?.label || n.data?.group,
+              },
+            }
+          }
+          return n
+        })
+
+        // Resize the group to fit the new child
+        updatedNodes = resizeGroupToFitChildren(groupNode.id, updatedNodes)
+
+        toast({
+          title: "Node added to group",
+          description: `"${nodeToAdd.data?.label || nodeToAdd.type}" was added to "${groupNode.data?.label}"`,
+        })
+
+        return updatedNodes
+      })
+    },
+    [setEdges, setNodes, resizeGroupToFitChildren],
   )
+
+  // Handle edge deletion: remove orphaned nodes from groups
+  const onEdgesDelete = useCallback((deletedEdges: Edge[]) => {
+    setNodes((nds) => {
+      // Get all remaining edges (after deletion)
+      // We need to compute this from current edges minus deletedEdges
+      const deletedEdgeIds = new Set(deletedEdges.map(e => e.id))
+
+      // Collect all nodes in groups that are endpoints of deleted edges
+      const nodesToCheck = new Set<string>()
+      deletedEdges.forEach(edge => {
+        const sourceNode = nds.find(n => n.id === edge.source)
+        const targetNode = nds.find(n => n.id === edge.target)
+        if (sourceNode?.parentId) nodesToCheck.add(sourceNode.id)
+        if (targetNode?.parentId) nodesToCheck.add(targetNode.id)
+      })
+
+      if (nodesToCheck.size === 0) return nds
+
+      // For each node in a group, check if it still has connections to other nodes in the same group
+      let updatedNodes = [...nds]
+      const groupsToResize = new Set<string>()
+
+      // We need current edges - we'll read them from the edges state
+      // Since setNodes doesn't give us edges, we'll use a trick: 
+      // check all edges and exclude deleted ones
+      setEdges((currentEdges) => {
+        const remainingEdges = currentEdges.filter(e => !deletedEdgeIds.has(e.id))
+
+        nodesToCheck.forEach(nodeId => {
+          const node = updatedNodes.find(n => n.id === nodeId)
+          if (!node || !node.parentId) return
+
+          const groupId = node.parentId
+          const siblingIds = updatedNodes
+            .filter(n => n.parentId === groupId && n.id !== nodeId)
+            .map(n => n.id)
+
+          // Check if this node still has any edge connecting it to a sibling in the same group
+          const hasConnectionToGroup = remainingEdges.some(edge => {
+            if (edge.hidden) return false
+            const isSource = edge.source === nodeId
+            const isTarget = edge.target === nodeId
+            if (!isSource && !isTarget) return false
+            const otherNodeId = isSource ? edge.target : edge.source
+            return siblingIds.includes(otherNodeId)
+          })
+
+          if (!hasConnectionToGroup) {
+            // Remove this node from the group - convert position back to absolute
+            const groupNode = updatedNodes.find(n => n.id === groupId)
+            if (groupNode) {
+              groupsToResize.add(groupId)
+              updatedNodes = updatedNodes.map(n => {
+                if (n.id === nodeId) {
+                  return {
+                    ...n,
+                    parentId: undefined,
+                    extent: undefined,
+                    position: {
+                      x: n.position.x + groupNode.position.x,
+                      y: n.position.y + groupNode.position.y,
+                    },
+                    data: {
+                      ...n.data,
+                      group: undefined,
+                    },
+                  }
+                }
+                return n
+              })
+
+              toast({
+                title: "Node removed from group",
+                description: `"${node.data?.label || node.type}" was removed from "${groupNode.data?.label}"`,
+              })
+            }
+          }
+        })
+
+        // Return edges unchanged - we just needed to read them
+        return currentEdges
+      })
+
+      // Resize affected groups
+      groupsToResize.forEach(groupId => {
+        updatedNodes = resizeGroupToFitChildren(groupId, updatedNodes)
+      })
+
+      return updatedNodes
+    })
+  }, [setNodes, setEdges, resizeGroupToFitChildren])
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -1639,9 +1828,10 @@ const exportWorkflow = () => {
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onInit={setReactFlowInstance}
+ onEdgesChange={onEdgesChange}
+  onConnect={onConnect}
+  onEdgesDelete={onEdgesDelete}
+  onInit={setReactFlowInstance}
               onDrop={onDrop}
               onDragOver={onDragOver}
               onNodeClick={onNodeClick}
