@@ -783,39 +783,102 @@ function WorkflowBuilderInner() {
     }, 100)
   }
 
-  // Helper: resize a group node to fit all its children with padding
-  const resizeGroupToFitChildren = useCallback((groupId: string, currentNodes: Node[]) => {
+  // Helper: takes a flat list of nodes (with data.group set), removes old group containers,
+  // and rebuilds group containers from scratch — equivalent to pressing "Remove Groups" then "Group by Node Name"
+  const recomputeGroups = useCallback((inputNodes: Node[]): Node[] => {
     const PADDING = 40
     const HEADER_HEIGHT = 40
-    const children = currentNodes.filter(n => n.parentId === groupId && !n.hidden)
-    if (children.length === 0) return currentNodes
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    children.forEach((child) => {
-      const w = child.width || 280
-      const h = child.height || 150
-      minX = Math.min(minX, child.position.x)
-      minY = Math.min(minY, child.position.y)
-      maxX = Math.max(maxX, child.position.x + w)
-      maxY = Math.max(maxY, child.position.y + h)
-    })
-
-    const newWidth = maxX - minX + PADDING * 2
-    const newHeight = maxY - minY + PADDING * 2 + HEADER_HEIGHT
-
-    return currentNodes.map(n => {
-      if (n.id === groupId) {
-        return {
-          ...n,
-          style: {
-            ...n.style,
-            width: Math.max(newWidth, 300),
-            height: Math.max(newHeight, 200),
-          },
+    // Step 1: Ungroup — remove group container nodes, convert child positions to absolute
+    const groupContainers = inputNodes.filter(n => n.type === "group")
+    const flatNodes = inputNodes
+      .filter(n => n.type !== "group")
+      .map(node => {
+        if (node.parentId) {
+          const parent = groupContainers.find(g => g.id === node.parentId)
+          if (parent) {
+            return {
+              ...node,
+              parentId: undefined,
+              extent: undefined,
+              position: {
+                x: node.position.x + parent.position.x,
+                y: node.position.y + parent.position.y,
+              },
+            }
+          }
         }
+        return { ...node, parentId: undefined, extent: undefined }
+      })
+
+    // Step 2: Separate nodes by their data.group property
+    const grouped = new Map<string, Node[]>()
+    const ungrouped: Node[] = []
+
+    flatNodes.forEach(node => {
+      const groupName = node.data?.group
+      if (groupName) {
+        if (!grouped.has(groupName)) grouped.set(groupName, [])
+        grouped.get(groupName)!.push(node)
+      } else {
+        ungrouped.push(node)
       }
-      return n
     })
+
+    // If no groups exist, just return flat nodes
+    if (grouped.size === 0) return flatNodes
+
+    // Step 3: Rebuild group containers and re-parent children
+    const newNodes: Node[] = []
+
+    grouped.forEach((children, groupName) => {
+      if (children.length === 0) return
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      children.forEach(node => {
+        const w = node.width || 280
+        const h = node.height || 150
+        minX = Math.min(minX, node.position.x)
+        minY = Math.min(minY, node.position.y)
+        maxX = Math.max(maxX, node.position.x + w)
+        maxY = Math.max(maxY, node.position.y + h)
+      })
+
+      const groupId = `group-${groupName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      const groupNode: Node = {
+        id: groupId,
+        type: "group",
+        position: { x: minX - PADDING, y: minY - PADDING - HEADER_HEIGHT },
+        style: {
+          width: maxX - minX + PADDING * 2,
+          height: maxY - minY + PADDING * 2 + HEADER_HEIGHT,
+          zIndex: -1,
+        },
+        data: { label: groupName },
+        draggable: true,
+        selectable: true,
+      }
+      newNodes.push(groupNode)
+
+      children.forEach(node => {
+        newNodes.push({
+          ...node,
+          parentId: groupId,
+          extent: "parent" as const,
+          position: {
+            x: node.position.x - (minX - PADDING),
+            y: node.position.y - (minY - PADDING - HEADER_HEIGHT),
+          },
+        })
+      })
+    })
+
+    // Add ungrouped nodes
+    ungrouped.forEach(node => {
+      newNodes.push(node)
+    })
+
+    return newNodes
   }, [])
 
   const onConnect = useCallback(
@@ -823,108 +886,95 @@ function WorkflowBuilderInner() {
       // First, add the edge
       setEdges((eds) => addEdge({ ...params, type: "custom" }, eds))
 
-      // Then, check if we need to dynamically add a node to a group
+      // Then, check if we need to propagate a group assignment and recompute groups
       setNodes((nds) => {
         const sourceNode = nds.find(n => n.id === params.source)
         const targetNode = nds.find(n => n.id === params.target)
         if (!sourceNode || !targetNode) return nds
 
-        const sourceInGroup = sourceNode.parentId && nds.find(n => n.id === sourceNode.parentId && n.type === "group")
-        const targetInGroup = targetNode.parentId && nds.find(n => n.id === targetNode.parentId && n.type === "group")
+        // Determine group names (check data.group, or if inside a group container, use the container's label)
+        const sourceGroup = sourceNode.data?.group || 
+          (sourceNode.parentId ? nds.find(n => n.id === sourceNode.parentId && n.type === "group")?.data?.label : null)
+        const targetGroup = targetNode.data?.group || 
+          (targetNode.parentId ? nds.find(n => n.id === targetNode.parentId && n.type === "group")?.data?.label : null)
 
-        // Case 1: source is in a group, target is NOT in any group -> add target to source's group
-        // Case 2: target is in a group, source is NOT in any group -> add source to target's group
-        // If both are in groups or neither, do nothing
-        let nodeToAdd: Node | null = null
-        let groupNode: Node | null = null
+        // If one has a group and the other doesn't, assign the group to the other
+        let nodeIdToUpdate: string | null = null
+        let groupToAssign: string | null = null
 
-        if (sourceInGroup && !targetInGroup && targetNode.type !== "group") {
-          nodeToAdd = targetNode
-          groupNode = nds.find(n => n.id === sourceNode.parentId)!
-        } else if (targetInGroup && !sourceInGroup && sourceNode.type !== "group") {
-          nodeToAdd = sourceNode
-          groupNode = nds.find(n => n.id === targetNode.parentId)!
+        if (sourceGroup && !targetGroup && targetNode.type !== "group") {
+          nodeIdToUpdate = targetNode.id
+          groupToAssign = sourceGroup
+        } else if (targetGroup && !sourceGroup && sourceNode.type !== "group") {
+          nodeIdToUpdate = sourceNode.id
+          groupToAssign = targetGroup
         }
 
-        if (!nodeToAdd || !groupNode) return nds
+        if (!nodeIdToUpdate || !groupToAssign) return nds
 
-        // Convert absolute position to relative (inside the group)
-        const relativeX = nodeToAdd.position.x - groupNode.position.x
-        const relativeY = nodeToAdd.position.y - groupNode.position.y
-
-        let updatedNodes = nds.map(n => {
-          if (n.id === nodeToAdd!.id) {
-            return {
-              ...n,
-              parentId: groupNode!.id,
-              extent: "parent" as const,
-              position: {
-                x: Math.max(40, relativeX),
-                y: Math.max(50, relativeY),
-              },
-              data: {
-                ...n.data,
-                group: groupNode!.data?.label || n.data?.group,
-              },
-            }
+        // Update the node's data.group
+        const updatedNodes = nds.map(n => {
+          if (n.id === nodeIdToUpdate) {
+            return { ...n, data: { ...n.data, group: groupToAssign } }
           }
           return n
         })
 
-        // Resize the group to fit the new child
-        updatedNodes = resizeGroupToFitChildren(groupNode.id, updatedNodes)
+        // Recompute all groups (ungroup + regroup)
+        const regrouped = recomputeGroups(updatedNodes)
 
         toast({
           title: "Node added to group",
-          description: `"${nodeToAdd.data?.label || nodeToAdd.type}" was added to "${groupNode.data?.label}"`,
+          description: `Node was added to "${groupToAssign}" automatically`,
         })
 
-        return updatedNodes
+        return regrouped
       })
     },
-    [setEdges, setNodes, resizeGroupToFitChildren],
+    [setEdges, setNodes, recomputeGroups],
   )
 
-  // Handle edge deletion: remove orphaned nodes from groups
+  // Handle edge deletion: remove orphaned nodes from groups and recompute
   const onEdgesDelete = useCallback((deletedEdges: Edge[]) => {
     setNodes((nds) => {
-      // Get all remaining edges (after deletion)
-      // We need to compute this from current edges minus deletedEdges
       const deletedEdgeIds = new Set(deletedEdges.map(e => e.id))
 
-      // Collect all nodes in groups that are endpoints of deleted edges
+      // Collect nodes that are endpoints of deleted edges and are in a group
       const nodesToCheck = new Set<string>()
       deletedEdges.forEach(edge => {
         const sourceNode = nds.find(n => n.id === edge.source)
         const targetNode = nds.find(n => n.id === edge.target)
-        if (sourceNode?.parentId) nodesToCheck.add(sourceNode.id)
-        if (targetNode?.parentId) nodesToCheck.add(targetNode.id)
+        if (sourceNode?.data?.group || sourceNode?.parentId) nodesToCheck.add(sourceNode!.id)
+        if (targetNode?.data?.group || targetNode?.parentId) nodesToCheck.add(targetNode!.id)
       })
 
       if (nodesToCheck.size === 0) return nds
 
-      // For each node in a group, check if it still has connections to other nodes in the same group
       let updatedNodes = [...nds]
-      const groupsToResize = new Set<string>()
+      let changed = false
 
-      // We need current edges - we'll read them from the edges state
-      // Since setNodes doesn't give us edges, we'll use a trick: 
-      // check all edges and exclude deleted ones
+      // Read current edges (after deletion) to decide which nodes lost all group connections
       setEdges((currentEdges) => {
         const remainingEdges = currentEdges.filter(e => !deletedEdgeIds.has(e.id))
 
         nodesToCheck.forEach(nodeId => {
           const node = updatedNodes.find(n => n.id === nodeId)
-          if (!node || !node.parentId) return
+          if (!node) return
 
-          const groupId = node.parentId
+          const nodeGroup = node.data?.group || 
+            (node.parentId ? updatedNodes.find(n => n.id === node.parentId && n.type === "group")?.data?.label : null)
+          if (!nodeGroup) return
+
+          // Find siblings in the same group
           const siblingIds = updatedNodes
-            .filter(n => n.parentId === groupId && n.id !== nodeId)
+            .filter(n => n.id !== nodeId && n.type !== "group" && (
+              n.data?.group === nodeGroup || 
+              (n.parentId && updatedNodes.find(g => g.id === n.parentId && g.type === "group")?.data?.label === nodeGroup)
+            ))
             .map(n => n.id)
 
-          // Check if this node still has any edge connecting it to a sibling in the same group
+          // Check if this node still has any edge to a sibling
           const hasConnectionToGroup = remainingEdges.some(edge => {
-            if (edge.hidden) return false
             const isSource = edge.source === nodeId
             const isTarget = edge.target === nodeId
             if (!isSource && !isTarget) return false
@@ -933,49 +983,31 @@ function WorkflowBuilderInner() {
           })
 
           if (!hasConnectionToGroup) {
-            // Remove this node from the group - convert position back to absolute
-            const groupNode = updatedNodes.find(n => n.id === groupId)
-            if (groupNode) {
-              groupsToResize.add(groupId)
-              updatedNodes = updatedNodes.map(n => {
-                if (n.id === nodeId) {
-                  return {
-                    ...n,
-                    parentId: undefined,
-                    extent: undefined,
-                    position: {
-                      x: n.position.x + groupNode.position.x,
-                      y: n.position.y + groupNode.position.y,
-                    },
-                    data: {
-                      ...n.data,
-                      group: undefined,
-                    },
-                  }
-                }
-                return n
-              })
+            // Remove group assignment
+            changed = true
+            updatedNodes = updatedNodes.map(n => {
+              if (n.id === nodeId) {
+                return { ...n, data: { ...n.data, group: undefined } }
+              }
+              return n
+            })
 
-              toast({
-                title: "Node removed from group",
-                description: `"${node.data?.label || node.type}" was removed from "${groupNode.data?.label}"`,
-              })
-            }
+            toast({
+              title: "Node removed from group",
+              description: `Node was removed from "${nodeGroup}"`,
+            })
           }
         })
 
-        // Return edges unchanged - we just needed to read them
         return currentEdges
       })
 
-      // Resize affected groups
-      groupsToResize.forEach(groupId => {
-        updatedNodes = resizeGroupToFitChildren(groupId, updatedNodes)
-      })
+      if (!changed) return nds
 
-      return updatedNodes
+      // Recompute all groups
+      return recomputeGroups(updatedNodes)
     })
-  }, [setNodes, setEdges, resizeGroupToFitChildren])
+  }, [setNodes, setEdges, recomputeGroups])
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
