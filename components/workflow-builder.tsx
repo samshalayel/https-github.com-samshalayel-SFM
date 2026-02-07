@@ -1055,8 +1055,8 @@ function WorkflowBuilderInner() {
 
   const updateNodeData = useCallback(
     (nodeId: string, data: any) => {
-      setNodes((nds) =>
-        nds.map((node) => {
+      setNodes((nds) => {
+        const updatedNodes = nds.map((node) => {
           if (node.id === nodeId) {
             return {
               ...node,
@@ -1067,10 +1067,17 @@ function WorkflowBuilderInner() {
             }
           }
           return node
-        }),
-      )
+        })
+
+        // If the group field changed, automatically recompute visual groups
+        if ('group' in data) {
+          return recomputeGroups(updatedNodes)
+        }
+
+        return updatedNodes
+      })
     },
-    [setNodes],
+    [setNodes, recomputeGroups],
   )
 
   const handleNewProjectClick = () => {
