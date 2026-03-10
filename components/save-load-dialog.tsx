@@ -742,6 +742,18 @@ export default function SaveLoadDialog({
                 </div>
               )}
 
+              {/* No GitHub Config Notice */}
+              {!githubConfig && (
+                <div className={`p-4 rounded-xl border ${isDarkMode ? "border-white/10 bg-gray-900/30" : "border-gray-200 bg-gray-50"}`}>
+                  <div className="flex items-center gap-3">
+                    <Github className={`h-5 w-5 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`} />
+                    <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                      Configure GitHub repository in Settings to save workflows to GitHub
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* No GitHub Token Notice */}
               {githubConfig && !githubConfig.token && (
                 <div className={`p-4 rounded-xl border ${isDarkMode ? "border-white/10 bg-gray-900/30" : "border-gray-200 bg-gray-50"}`}>
