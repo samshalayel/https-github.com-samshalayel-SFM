@@ -222,8 +222,88 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Action: save/create file in repo
+    if (action === "save") {
+      if (!path) {
+        return NextResponse.json(
+          { error: "Missing required parameter: path" },
+          { status: 400 }
+        )
+      }
+
+      const { content, message = "Save workflow from SFM" } = body
+      if (!content) {
+        return NextResponse.json(
+          { error: "Missing required parameter: content" },
+          { status: 400 }
+        )
+      }
+
+      if (!authToken) {
+        return NextResponse.json(
+          { error: "GitHub token required to save files" },
+          { status: 401 }
+        )
+      }
+
+      headers.Accept = "application/vnd.github.v3+json"
+      
+      // First, try to get the file to check if it exists (for update)
+      const checkUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${path}?ref=${ref}`
+      let existingSha: string | undefined
+      
+      try {
+        const checkResponse = await fetch(checkUrl, { headers })
+        if (checkResponse.ok) {
+          const existingFile = await checkResponse.json()
+          existingSha = existingFile.sha
+        }
+      } catch {
+        // File doesn't exist, that's fine
+      }
+
+      // Create or update file
+      const githubUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${path}`
+      const contentBase64 = Buffer.from(JSON.stringify(content, null, 2)).toString("base64")
+      
+      const saveBody: any = {
+        message,
+        content: contentBase64,
+        branch: ref,
+      }
+      
+      if (existingSha) {
+        saveBody.sha = existingSha
+      }
+
+      const response = await fetch(githubUrl, {
+        method: "PUT",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(saveBody),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        return NextResponse.json(
+          { error: errorData.message || `GitHub API error: ${response.statusText}` },
+          { status: response.status }
+        )
+      }
+
+      const result = await response.json()
+      return NextResponse.json({
+        success: true,
+        message: existingSha ? "File updated" : "File created",
+        path: result.content.path,
+        sha: result.content.sha,
+      })
+    }
+
     return NextResponse.json(
-      { error: "Invalid action. Use: list, fetch" },
+      { error: "Invalid action. Use: list, fetch, save" },
       { status: 400 }
     )
   } catch (error: any) {

@@ -58,21 +58,22 @@ export default function SaveLoadDialog({
   const [isLoadingGithub, setIsLoadingGithub] = useState(false)
   const [githubError, setGithubError] = useState<string | null>(null)
   const [githubConfig, setGithubConfig] = useState<{repo: string, token: string} | null>(null)
+  const [isSavingToGithub, setIsSavingToGithub] = useState(false)
+  const [githubSaveSuccess, setGithubSaveSuccess] = useState<string | null>(null)
 
   // Load workflows from Supabase when dialog opens
   useEffect(() => {
     if (isOpen) {
-      console.log("[v0] Dialog opened - mode:", mode)
-      console.log("[v0] Current evidence in dialog:", currentEvidence)
-      console.log("[v0] Evidence count in dialog:", currentEvidence?.length || 0)
       loadWorkflows()
+      loadGithubConfig()
+      setGithubSaveSuccess(null)
       
-      // Load GitHub config and templates when in load mode
-      if (mode === "load") {
-        loadGithubConfig()
+      // Load GitHub templates when in load mode
+      if (mode === "load" && githubConfig) {
+        loadGithubTemplates(githubConfig.repo, githubConfig.token)
       }
     }
-  }, [isOpen, mode, currentEvidence])
+  }, [isOpen, mode])
 
   // Load GitHub config from localStorage
   const loadGithubConfig = () => {
@@ -85,14 +86,62 @@ export default function SaveLoadDialog({
             repo: parsed.githubRepo,
             token: parsed.githubToken || ""
           })
-          loadGithubTemplates(parsed.githubRepo, parsed.githubToken || "")
         } else {
           setGithubConfig(null)
           setGithubTemplates([])
         }
       }
     } catch (e) {
-      console.log("[v0] Error loading GitHub config:", e)
+      setGithubConfig(null)
+    }
+  }
+
+  // Save workflow to GitHub
+  const saveToGithub = async () => {
+    if (!githubConfig || !githubConfig.token) {
+      alert("GitHub token required to save files. Please add it in Settings.")
+      return
+    }
+
+    if (!workflowName.trim()) {
+      alert("Please enter a workflow name")
+      return
+    }
+
+    setIsSavingToGithub(true)
+    setGithubSaveSuccess(null)
+    try {
+      const fileName = workflowName.trim().replace(/[^a-zA-Z0-9-_]/g, "-") + ".json"
+      
+      const response = await fetch("/api/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          repo: githubConfig.repo,
+          path: fileName,
+          token: githubConfig.token,
+          content: {
+            nodes: currentNodes,
+            edges: currentEdges,
+            evidence: currentEvidence,
+          },
+          message: `Save workflow: ${workflowName.trim()}`,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save to GitHub")
+      }
+
+      setGithubSaveSuccess(`Saved to ${githubConfig.repo}/${fileName}`)
+      setWorkflowName("")
+    } catch (error: any) {
+      alert("Failed to save to GitHub: " + (error.message || "Unknown error"))
+    } finally {
+      setIsSavingToGithub(false)
     }
   }
 
@@ -653,6 +702,63 @@ export default function SaveLoadDialog({
                       : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                   }`}
                 />
+              </div>
+
+              {/* GitHub Save Section */}
+              {githubConfig && githubConfig.token && (
+                <div className={`rounded-xl border overflow-hidden ${isDarkMode ? "border-white/10 bg-gradient-to-r from-gray-900/50 to-gray-800/50" : "border-gray-200 bg-gradient-to-r from-gray-50 to-white"}`}>
+                  <div className={`flex items-center justify-between p-4`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white shadow-sm"}`}>
+                        <Github className={`h-5 w-5 ${isDarkMode ? "text-white" : "text-gray-800"}`} />
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                          Save to GitHub
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          {githubConfig.repo}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={saveToGithub}
+                      disabled={isSavingToGithub || !workflowName.trim()}
+                      className="bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-white"
+                    >
+                      {isSavingToGithub ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Github className="h-4 w-4 mr-2" />
+                      )}
+                      {isSavingToGithub ? "Saving..." : "Save to GitHub"}
+                    </Button>
+                  </div>
+                  {githubSaveSuccess && (
+                    <div className={`px-4 pb-4`}>
+                      <p className="text-green-500 text-sm">{githubSaveSuccess}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* No GitHub Token Notice */}
+              {githubConfig && !githubConfig.token && (
+                <div className={`p-4 rounded-xl border ${isDarkMode ? "border-white/10 bg-gray-900/30" : "border-gray-200 bg-gray-50"}`}>
+                  <div className="flex items-center gap-3">
+                    <Github className={`h-5 w-5 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`} />
+                    <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                      Add GitHub token in Settings to save workflows to GitHub
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className={`flex items-center gap-3 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                <div className={`flex-1 h-px ${isDarkMode ? "bg-white/10" : "bg-gray-200"}`} />
+                <span className="text-xs font-medium">Cloud Storage</span>
+                <div className={`flex-1 h-px ${isDarkMode ? "bg-white/10" : "bg-gray-200"}`} />
               </div>
 
               {savedWorkflows.length > 0 && (
