@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Upload, Building2, User, DollarSign, Calendar, Briefcase, Github, Eye, EyeOff, FolderGit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,17 +29,19 @@ export default function SettingsDialog({ isOpen, onClose, isDarkMode = true }: S
   const [showToken, setShowToken] = useState(false)
 
   // Load settings from localStorage on mount
-  useState(() => {
-    const savedSettings = localStorage.getItem("projectSettings")
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings)
-        setSettings(prev => ({ ...prev, ...parsed }))
-      } catch (e) {
-        console.log("[v0] Error loading settings:", e)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedSettings = localStorage.getItem("projectSettings")
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings)
+          setSettings(prev => ({ ...prev, ...parsed }))
+        } catch (e) {
+          console.error("Error loading settings:", e)
+        }
       }
     }
-  })
+  }, [])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
