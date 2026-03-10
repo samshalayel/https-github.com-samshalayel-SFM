@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Save, Download, FolderOpen, Trash2, Loader2, Copy, Edit3, RefreshCw } from "lucide-react"
+import { X, Save, Download, FolderOpen, Trash2, Loader2, Copy, Edit3, RefreshCw, Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,6 +28,7 @@ interface SaveLoadDialogProps {
   onLoad: (workflow: { nodes: any[]; edges: any[]; name?: string }) => void
   onLoadEvidence?: (evidence: any[]) => void
   isDarkMode?: boolean
+  onOpenGitHubImport?: () => void
 }
 
 type DuplicateAction = "overwrite" | "version" | "rename" | null
@@ -42,6 +43,7 @@ export default function SaveLoadDialog({
   onLoad,
   onLoadEvidence,
   isDarkMode = true,
+  onOpenGitHubImport,
 }: SaveLoadDialogProps) {
   const [workflowName, setWorkflowName] = useState("")
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
@@ -579,7 +581,34 @@ export default function SaveLoadDialog({
               )}
             </div>
           ) : (
-            <div>
+            <div className="space-y-4">
+              {/* GitHub Import Button */}
+              {onOpenGitHubImport && (
+                <button
+                  onClick={() => {
+                    onClose()
+                    onOpenGitHubImport()
+                  }}
+                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                    isDarkMode
+                      ? "bg-gradient-to-r from-gray-800/50 to-gray-900/50 border-gray-700 hover:border-gray-600 hover:shadow-lg"
+                      : "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300 hover:border-gray-400 hover:shadow-md"
+                  }`}
+                >
+                  <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                    <Github className={`h-5 w-5 ${isDarkMode ? "text-white" : "text-gray-800"}`} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                      Import from GitHub
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Load workflow templates from GitHub repositories
+                    </p>
+                  </div>
+                </button>
+              )}
+
               {savedWorkflows.length === 0 ? (
                 <div className="text-center py-12">
                   <FolderOpen className={`h-16 w-16 mx-auto mb-4 ${isDarkMode ? "text-gray-600" : "text-gray-300"}`} />

@@ -71,6 +71,7 @@ import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
 import { createClient } from "@/lib/supabase/client"
 import SaveLoadDialog from "./save-load-dialog"
+import GitHubImportDialog from "./github-import-dialog"
 import EvidenceRepository from "./evidence-repository"
 import type { Evidence } from "@/types/evidence"
 import {
@@ -141,6 +142,7 @@ function WorkflowBuilderInner() {
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false)
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
+  const [isGitHubImportOpen, setIsGitHubImportOpen] = useState(false)
   const [evidence, setEvidence] = useState<Evidence[]>([])
   const [currentProjectName, setCurrentProjectName] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -1972,6 +1974,19 @@ const exportWorkflow = () => {
         currentEvidence={evidence}
         onLoad={handleLoadWorkflow}
         onLoadEvidence={setEvidence}
+        isDarkMode={isDarkMode}
+        onOpenGitHubImport={() => setIsGitHubImportOpen(true)}
+      />
+
+      <GitHubImportDialog
+        isOpen={isGitHubImportOpen}
+        onClose={() => setIsGitHubImportOpen(false)}
+        onImport={(workflow) => {
+          handleLoadWorkflow(workflow)
+          if (workflow.evidence) {
+            setEvidence(workflow.evidence)
+          }
+        }}
         isDarkMode={isDarkMode}
       />
 
