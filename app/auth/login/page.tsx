@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { Suspense } from "react"
 import Image from "next/image"
 
 import { createClient } from "@/lib/supabase/client"
@@ -22,6 +22,20 @@ function GoogleIcon() {
   )
 }
 
+// Component that uses useSearchParams - must be wrapped in Suspense
+function LoginErrorHandler({ onError }: { onError: (error: string | null) => void }) {
+  const searchParams = useSearchParams()
+  
+  useEffect(() => {
+    const urlError = searchParams.get("error")
+    if (urlError) {
+      onError(decodeURIComponent(urlError))
+    }
+  }, [searchParams, onError])
+  
+  return null
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,15 +43,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // Check for error in URL params (from OAuth callback)
-  useEffect(() => {
-    const urlError = searchParams.get("error")
-    if (urlError) {
-      setError(decodeURIComponent(urlError))
-    }
-  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,6 +86,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full">
+      {/* Handle URL error params with Suspense */}
+      <Suspense fallback={null}>
+        <LoginErrorHandler onError={setError} />
+      </Suspense>
+      
       {/* Left Side - Login Form */}
       <div className="relative flex w-full flex-col justify-center bg-[#1a1a2e] px-8 py-12 lg:w-1/2 lg:px-16">
         {/* Grid pattern background */}
