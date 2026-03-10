@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -16,8 +17,30 @@ export async function GET(request: Request) {
   }
 
   if (code) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("[Auth Callback] Supabase not configured")
+      return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`)
+    }
+
     try {
-      const supabase = await createClient()
+      const cookieStore = await cookies()
+      
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          },
+        },
+      })
+
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
       
       if (exchangeError) {
@@ -31,10 +54,8 @@ export async function GET(request: Request) {
       const isLocalEnv = process.env.NODE_ENV === "development"
       
       if (isLocalEnv) {
-        // In development, use the origin directly
         return NextResponse.redirect(`${origin}${next}`)
       } else if (forwardedHost) {
-        // In production behind a proxy, use the forwarded host
         return NextResponse.redirect(`https://${forwardedHost}${next}`)
       } else {
         return NextResponse.redirect(`${origin}${next}`)
