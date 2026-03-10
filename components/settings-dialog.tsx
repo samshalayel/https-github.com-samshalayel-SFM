@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { X, Upload, Building2, User, DollarSign, Calendar, Briefcase } from "lucide-react"
+import { useState, useEffect } from "react"
+import { X, Upload, Building2, User, DollarSign, Calendar, Briefcase, Github, Eye, EyeOff, FolderGit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +23,25 @@ export default function SettingsDialog({ isOpen, onClose, isDarkMode = true }: S
     duration: "",
     projectName: "",
     logo: null as File | null,
+    githubToken: "",
+    githubRepo: "",
   })
+  const [showToken, setShowToken] = useState(false)
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedSettings = localStorage.getItem("projectSettings")
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings)
+          setSettings(prev => ({ ...prev, ...parsed }))
+        } catch (e) {
+          console.error("Error loading settings:", e)
+        }
+      }
+    }
+  }, [])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -232,6 +250,79 @@ export default function SettingsDialog({ isOpen, onClose, isDarkMode = true }: S
                     : "border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                 }`}
               />
+            </div>
+          </div>
+
+          {/* GitHub Integration Section */}
+          <div className={`mt-6 pt-6 border-t ${isDarkMode ? "border-white/10" : "border-gray-200"}`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Github className={`h-5 w-5 ${isDarkMode ? "text-white" : "text-gray-800"}`} />
+              <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                GitHub Integration
+              </h3>
+            </div>
+            <p className={`text-sm mb-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+              Configure GitHub to import workflow templates directly from a repository
+            </p>
+
+            {/* GitHub Repository */}
+            <div className="space-y-2 mb-4">
+              <Label
+                htmlFor="githubRepo"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <FolderGit2 className="h-4 w-4 text-orange-500" />
+                GitHub Repository
+              </Label>
+              <Input
+                id="githubRepo"
+                value={settings.githubRepo}
+                onChange={(e) => setSettings({ ...settings, githubRepo: e.target.value })}
+                placeholder="owner/repo (e.g., samshalayel/sfm-templates)"
+                className={`w-full rounded-xl ${
+                  isDarkMode
+                    ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-orange-500"
+                    : "border-gray-200 focus:border-orange-400 focus:ring-orange-400"
+                }`}
+              />
+              <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                Enter the repository in format: owner/repo
+              </p>
+            </div>
+
+            {/* GitHub Token */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="githubToken"
+                className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                <Github className="h-4 w-4 text-purple-500" />
+                GitHub Personal Access Token
+              </Label>
+              <div className="relative">
+                <Input
+                  id="githubToken"
+                  type={showToken ? "text" : "password"}
+                  value={settings.githubToken}
+                  onChange={(e) => setSettings({ ...settings, githubToken: e.target.value })}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className={`w-full rounded-xl pr-10 ${
+                    isDarkMode
+                      ? "bg-[#1a1a1a] border-white/10 text-white placeholder:text-gray-500 focus:border-purple-500"
+                      : "border-gray-200 focus:border-purple-400 focus:ring-purple-400"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"}`}
+                >
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                Required for private repositories. Get one from GitHub Settings &gt; Developer settings &gt; Personal access tokens
+              </p>
             </div>
           </div>
         </div>
