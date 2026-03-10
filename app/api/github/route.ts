@@ -100,23 +100,29 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// List files in a directory (for browsing templates)
+// List files in a directory or fetch a specific file
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { owner, repo, path = "", token, ref = "main" } = body
+    const { action, repo, path = "", token, ref = "main" } = body
 
-    if (!owner || !repo) {
+    if (!repo) {
       return NextResponse.json(
-        { error: "Missing required parameters: owner, repo" },
+        { error: "Missing required parameter: repo (format: owner/repo)" },
         { status: 400 }
       )
     }
 
-    const githubUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${ref}`
+    // Parse owner/repo format
+    const [owner, repoName] = repo.includes("/") ? repo.split("/") : [repo, ""]
+    if (!owner || !repoName) {
+      return NextResponse.json(
+        { error: "Invalid repo format. Use: owner/repo" },
+        { status: 400 }
+      )
+    }
     
     const headers: HeadersInit = {
-      Accept: "application/vnd.github.v3+json",
       "User-Agent": "SFM-Workflow-Builder",
     }
 
@@ -125,45 +131,105 @@ export async function POST(request: NextRequest) {
       headers.Authorization = `Bearer ${authToken}`
     }
 
-    const response = await fetch(githubUrl, { headers })
+    // Action: list files in repo
+    if (action === "list") {
+      headers.Accept = "application/vnd.github.v3+json"
+      const githubUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${path}?ref=${ref}`
+      
+      const response = await fetch(githubUrl, { headers })
 
-    if (!response.ok) {
-      if (response.status === 404) {
+      if (!response.ok) {
+        if (response.status === 404) {
+          return NextResponse.json(
+            { error: "Repository or path not found" },
+            { status: 404 }
+          )
+        }
+        if (response.status === 401 || response.status === 403) {
+          return NextResponse.json(
+            { error: "Authentication required for this repository" },
+            { status: 401 }
+          )
+        }
         return NextResponse.json(
-          { error: "Repository or path not found" },
-          { status: 404 }
+          { error: `GitHub API error: ${response.statusText}` },
+          { status: response.status }
         )
       }
-      return NextResponse.json(
-        { error: `GitHub API error: ${response.statusText}` },
-        { status: response.status }
-      )
+
+      const contents = await response.json()
+      
+      // Filter to only show JSON files and directories
+      const files = Array.isArray(contents) 
+        ? contents
+            .filter((item: any) => item.type === "file" && item.name.endsWith(".json"))
+            .map((item: any) => ({
+              name: item.name,
+              path: item.path,
+              sha: item.sha,
+              size: item.size,
+            }))
+        : []
+
+      return NextResponse.json({
+        success: true,
+        files,
+        meta: { owner, repo: repoName, path, ref },
+      })
     }
 
-    const contents = await response.json()
-    
-    // Filter to only show JSON files and directories
-    const items = Array.isArray(contents) 
-      ? contents
-          .filter((item: any) => item.type === "dir" || item.name.endsWith(".json"))
-          .map((item: any) => ({
-            name: item.name,
-            path: item.path,
-            type: item.type,
-            size: item.size,
-            downloadUrl: item.download_url,
-          }))
-      : []
+    // Action: fetch specific file content
+    if (action === "fetch") {
+      if (!path) {
+        return NextResponse.json(
+          { error: "Missing required parameter: path" },
+          { status: 400 }
+        )
+      }
 
-    return NextResponse.json({
-      success: true,
-      items,
-      meta: { owner, repo, path, ref },
-    })
-  } catch (error: any) {
-    console.error("GitHub list error:", error)
+      headers.Accept = "application/vnd.github.v3.raw"
+      const githubUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${path}?ref=${ref}`
+      
+      const response = await fetch(githubUrl, { headers })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return NextResponse.json(
+            { error: "File not found" },
+            { status: 404 }
+          )
+        }
+        return NextResponse.json(
+          { error: `GitHub API error: ${response.statusText}` },
+          { status: response.status }
+        )
+      }
+
+      const content = await response.text()
+      
+      try {
+        const jsonContent = JSON.parse(content)
+        return NextResponse.json({
+          success: true,
+          content: jsonContent,
+          meta: { owner, repo: repoName, path, ref },
+        })
+      } catch {
+        return NextResponse.json(
+          { error: "File is not valid JSON" },
+          { status: 400 }
+        )
+      }
+    }
+
     return NextResponse.json(
-      { error: `Failed to list files: ${error.message}` },
+      { error: "Invalid action. Use: list, fetch" },
+      { status: 400 }
+    )
+  } catch (error: any) {
+    console.error("GitHub API error:", error)
+    return NextResponse.json(
+      { error: `Failed to process request: ${error.message}` },
       { status: 500 }
     )
   }

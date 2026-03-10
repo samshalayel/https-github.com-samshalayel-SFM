@@ -52,6 +52,12 @@ export default function SaveLoadDialog({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false)
   const [duplicateName, setDuplicateName] = useState("")
   const [suggestedVersionName, setSuggestedVersionName] = useState("")
+  
+  // GitHub templates state
+  const [githubTemplates, setGithubTemplates] = useState<{name: string, path: string, sha: string}[]>([])
+  const [isLoadingGithub, setIsLoadingGithub] = useState(false)
+  const [githubError, setGithubError] = useState<string | null>(null)
+  const [githubConfig, setGithubConfig] = useState<{repo: string, token: string} | null>(null)
 
   // Load workflows from Supabase when dialog opens
   useEffect(() => {
@@ -60,8 +66,114 @@ export default function SaveLoadDialog({
       console.log("[v0] Current evidence in dialog:", currentEvidence)
       console.log("[v0] Evidence count in dialog:", currentEvidence?.length || 0)
       loadWorkflows()
+      
+      // Load GitHub config and templates when in load mode
+      if (mode === "load") {
+        loadGithubConfig()
+      }
     }
   }, [isOpen, mode, currentEvidence])
+
+  // Load GitHub config from localStorage
+  const loadGithubConfig = () => {
+    try {
+      const savedSettings = localStorage.getItem("projectSettings")
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings)
+        if (parsed.githubRepo) {
+          setGithubConfig({
+            repo: parsed.githubRepo,
+            token: parsed.githubToken || ""
+          })
+          loadGithubTemplates(parsed.githubRepo, parsed.githubToken || "")
+        } else {
+          setGithubConfig(null)
+          setGithubTemplates([])
+        }
+      }
+    } catch (e) {
+      console.log("[v0] Error loading GitHub config:", e)
+    }
+  }
+
+  // Load GitHub templates from repo
+  const loadGithubTemplates = async (repo: string, token: string) => {
+    setIsLoadingGithub(true)
+    setGithubError(null)
+    try {
+      const response = await fetch("/api/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "list",
+          repo,
+          token: token || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load templates")
+      }
+
+      // Filter only JSON files
+      const jsonFiles = (data.files || []).filter((file: any) => 
+        file.name.toLowerCase().endsWith(".json")
+      )
+      setGithubTemplates(jsonFiles)
+    } catch (error: any) {
+      console.log("[v0] Error loading GitHub templates:", error)
+      setGithubError(error.message || "Failed to load templates")
+      setGithubTemplates([])
+    } finally {
+      setIsLoadingGithub(false)
+    }
+  }
+
+  // Load a specific template from GitHub
+  const loadGithubTemplate = async (path: string, fileName: string) => {
+    if (!githubConfig) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "fetch",
+          repo: githubConfig.repo,
+          path,
+          token: githubConfig.token || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load template")
+      }
+
+      // Parse the workflow content
+      const workflow = data.content
+      const nodes = Array.isArray(workflow.nodes) ? workflow.nodes : []
+      const edges = Array.isArray(workflow.edges) ? workflow.edges : []
+      const evidenceData = Array.isArray(workflow.evidence) ? workflow.evidence : []
+
+      onLoad({ nodes, edges, name: fileName.replace(".json", "") })
+      
+      if (onLoadEvidence && evidenceData.length > 0) {
+        onLoadEvidence(evidenceData)
+      }
+      
+      onClose()
+    } catch (error: any) {
+      console.log("[v0] Error loading GitHub template:", error)
+      alert("Failed to load template: " + (error.message || "Unknown error"))
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const loadWorkflows = async () => {
     setIsLoading(true)
@@ -582,32 +694,98 @@ export default function SaveLoadDialog({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* GitHub Import Button */}
-              {onOpenGitHubImport && (
-                <button
-                  onClick={() => {
-                    onClose()
-                    onOpenGitHubImport()
-                  }}
-                  className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                    isDarkMode
-                      ? "bg-gradient-to-r from-gray-800/50 to-gray-900/50 border-gray-700 hover:border-gray-600 hover:shadow-lg"
-                      : "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300 hover:border-gray-400 hover:shadow-md"
-                  }`}
-                >
-                  <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
-                    <Github className={`h-5 w-5 ${isDarkMode ? "text-white" : "text-gray-800"}`} />
+              {/* GitHub Templates Section */}
+              {githubConfig && (
+                <div className={`rounded-xl border overflow-hidden ${isDarkMode ? "border-white/10 bg-gradient-to-r from-gray-900/50 to-gray-800/50" : "border-gray-200 bg-gradient-to-r from-gray-50 to-white"}`}>
+                  <div className={`flex items-center justify-between p-4 border-b ${isDarkMode ? "border-white/10" : "border-gray-200"}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white shadow-sm"}`}>
+                        <Github className={`h-5 w-5 ${isDarkMode ? "text-white" : "text-gray-800"}`} />
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                          GitHub Templates
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          {githubConfig.repo}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => loadGithubTemplates(githubConfig.repo, githubConfig.token)}
+                      disabled={isLoadingGithub}
+                      className={`p-2 rounded-lg transition-colors ${isDarkMode ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-600"}`}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingGithub ? "animate-spin" : ""}`} />
+                    </button>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                      Import from GitHub
-                    </p>
-                    <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                      Load workflow templates from GitHub repositories
-                    </p>
+                  
+                  <div className="p-3 max-h-48 overflow-y-auto">
+                    {isLoadingGithub ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className={`h-6 w-6 animate-spin ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+                      </div>
+                    ) : githubError ? (
+                      <div className="text-center py-4">
+                        <p className="text-red-500 text-sm">{githubError}</p>
+                        <p className={`text-xs mt-2 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                          Check your repo name and token in Settings
+                        </p>
+                      </div>
+                    ) : githubTemplates.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          No JSON templates found
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {githubTemplates.map((template) => (
+                          <button
+                            key={template.sha}
+                            onClick={() => loadGithubTemplate(template.path, template.name)}
+                            disabled={isLoading}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
+                              isDarkMode
+                                ? "hover:bg-white/10 border border-transparent hover:border-white/10"
+                                : "hover:bg-gray-100 border border-transparent hover:border-gray-200"
+                            }`}
+                          >
+                            <div className={`p-2 rounded-lg ${isDarkMode ? "bg-indigo-500/20" : "bg-indigo-100"}`}>
+                              <FolderOpen className="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium truncate ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                                {template.name.replace(".json", "")}
+                              </p>
+                              <p className={`text-xs truncate ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                                {template.path}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </button>
+                </div>
               )}
+
+              {/* No GitHub Config Notice */}
+              {!githubConfig && (
+                <div className={`p-4 rounded-xl border text-center ${isDarkMode ? "border-white/10 bg-gray-900/50" : "border-gray-200 bg-gray-50"}`}>
+                  <Github className={`h-8 w-8 mx-auto mb-2 ${isDarkMode ? "text-gray-600" : "text-gray-400"}`} />
+                  <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    Configure GitHub in Settings to import templates
+                  </p>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className={`flex items-center gap-3 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                <div className={`flex-1 h-px ${isDarkMode ? "bg-white/10" : "bg-gray-200"}`} />
+                <span className="text-xs font-medium">Saved Workflows</span>
+                <div className={`flex-1 h-px ${isDarkMode ? "bg-white/10" : "bg-gray-200"}`} />
+              </div>
 
               {savedWorkflows.length === 0 ? (
                 <div className="text-center py-12">
