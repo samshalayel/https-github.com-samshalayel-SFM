@@ -16,6 +16,7 @@ export function createClient() {
         getUser: async () => ({ data: { user: null }, error: null }),
         signInWithPassword: async () => ({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
         signUp: async () => ({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
+        signInWithOAuth: async () => ({ data: { url: null, provider: null }, error: { message: "Supabase not configured" } }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       },
       from: () => ({
