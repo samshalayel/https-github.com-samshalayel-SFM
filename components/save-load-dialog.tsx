@@ -77,21 +77,33 @@ export default function SaveLoadDialog({
 
   // Load GitHub config from localStorage
   const loadGithubConfig = () => {
+    if (typeof window === "undefined") return
+    
     try {
       const savedSettings = localStorage.getItem("projectSettings")
+      console.log("[v0] Loading GitHub config, savedSettings:", savedSettings)
+      
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings)
+        console.log("[v0] Parsed settings:", parsed)
+        
         if (parsed.githubRepo) {
+          console.log("[v0] Setting githubConfig with repo:", parsed.githubRepo)
           setGithubConfig({
             repo: parsed.githubRepo,
             token: parsed.githubToken || ""
           })
         } else {
+          console.log("[v0] No githubRepo found in settings")
           setGithubConfig(null)
           setGithubTemplates([])
         }
+      } else {
+        console.log("[v0] No projectSettings in localStorage")
+        setGithubConfig(null)
       }
     } catch (e) {
+      console.log("[v0] Error loading GitHub config:", e)
       setGithubConfig(null)
     }
   }
