@@ -6,6 +6,13 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // Auth callback must be handled separately - skip middleware processing
+  // to allow the OAuth code exchange to complete without interference
+  const isAuthCallback = request.nextUrl.pathname === "/auth/callback"
+  if (isAuthCallback) {
+    return supabaseResponse;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -45,14 +52,10 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getUser() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
-  const {
+const {
     data: { user },
   } = await supabase.auth.getUser()
 
-
-  // Auth callback should always be accessible to complete OAuth flow
-  const isAuthCallback = request.nextUrl.pathname === "/auth/callback"
-  
   // Auth pages should be accessible without login
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth/")
   
@@ -64,6 +67,13 @@ export async function updateSession(request: NextRequest) {
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/login"
+    return NextResponse.redirect(url)
+  }
+
+  // If logged in user tries to access auth pages, redirect to home
+  if (isAuthPage && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
     return NextResponse.redirect(url)
   }
 
