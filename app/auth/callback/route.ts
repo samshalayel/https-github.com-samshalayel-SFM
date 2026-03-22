@@ -1,8 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { type NextRequest } from "next/server"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
   const error = searchParams.get("error")
@@ -26,16 +26,29 @@ export async function GET(request: Request) {
     }
 
     try {
-      const cookieStore = await cookies()
+      // Create response that we'll return - cookies will be set on this
+      const forwardedHost = request.headers.get("x-forwarded-host")
+      const isLocalEnv = process.env.NODE_ENV === "development"
+      
+      let redirectUrl: string
+      if (isLocalEnv) {
+        redirectUrl = `${origin}${next}`
+      } else if (forwardedHost) {
+        redirectUrl = `https://${forwardedHost}${next}`
+      } else {
+        redirectUrl = `${origin}${next}`
+      }
+      
+      const response = NextResponse.redirect(redirectUrl)
       
       const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
           getAll() {
-            return cookieStore.getAll()
+            return request.cookies.getAll()
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
+              response.cookies.set(name, value, options)
             })
           },
         },
@@ -49,17 +62,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
       }
       
-      // Successful authentication - redirect to intended destination
-      const forwardedHost = request.headers.get("x-forwarded-host")
-      const isLocalEnv = process.env.NODE_ENV === "development"
-      
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+      // Successful authentication - return response with cookies set
+      return response
     } catch (err) {
       console.error("[Auth Callback] Unexpected error:", err)
       return NextResponse.redirect(`${origin}/auth/login?error=unexpected_error`)
