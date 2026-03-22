@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Users, FileArchive, ListTodo, Columns3, RefreshCw, ArrowRight, Loader2 } from "lucide-react"
+import { Users, FileArchive, ListTodo, Columns3, RefreshCw, ArrowRight, Loader2, Key } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { UsersTable } from "@/components/dashboard/users-table"
@@ -70,6 +70,12 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/dashboard/api-keys">
+              <Button variant="outline" size="sm" className="gap-2 border-border text-foreground hover:bg-muted">
+                <Key className="h-4 w-4" />
+                مفاتيح API
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"
