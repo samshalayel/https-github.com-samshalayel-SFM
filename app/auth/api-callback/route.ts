@@ -5,8 +5,9 @@ import { cookies } from "next/headers"
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const userId = searchParams.get("user_id")
+  const isPopup = searchParams.get("popup") === "true"
 
-  console.log("[v0] API Callback started with userId:", userId)
+  console.log("[v0] API Callback started with userId:", userId, "isPopup:", isPopup)
 
   if (!userId) {
     return NextResponse.redirect(`${origin}/auth/login?error=invalid_request`)
@@ -95,6 +96,35 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[v0] Session created successfully!")
+    
+    // If this is a popup, return an HTML page that notifies the parent and closes
+    if (isPopup) {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head><title>تم تسجيل الدخول</title></head>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: "API_LOGIN_SUCCESS" }, "${origin}");
+                setTimeout(() => window.close(), 500);
+              } else {
+                window.location.href = "/";
+              }
+            </script>
+            <p>تم تسجيل الدخول بنجاح! جارٍ الإغلاق...</p>
+          </body>
+        </html>
+      `
+      return new NextResponse(html, {
+        headers: {
+          "Content-Type": "text/html",
+          // Set cookies from the response
+          ...Object.fromEntries(response.headers.entries()),
+        },
+      })
+    }
+    
     return response
   } catch (error: any) {
     console.error("[v0] API callback error:", error)

@@ -11,8 +11,18 @@ function ApiLoginContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [message, setMessage] = useState("جارٍ التحقق من المفتاح...")
 
+  // Check if we're in an iframe
+  const isInIframe = () => {
+    try {
+      return window.self !== window.top
+    } catch {
+      return true
+    }
+  }
+
   useEffect(() => {
     const key = searchParams.get("key")
+    const popup = searchParams.get("popup") // Check if this is the popup window
 
     if (!key) {
       setStatus("error")
@@ -20,7 +30,52 @@ function ApiLoginContent() {
       return
     }
 
-    // Validate and authenticate with API key
+    // If we're in an iframe and not already in popup mode, open a popup for auth
+    if (isInIframe() && popup !== "true") {
+      setMessage("جارٍ فتح نافذة المصادقة...")
+      
+      // Open popup window for authentication
+      const popupUrl = `${window.location.origin}/auth/api-login?key=${key}&popup=true`
+      const popupWindow = window.open(
+        popupUrl,
+        "api-login-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes"
+      )
+
+      // Listen for message from popup
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return
+        
+        if (event.data.type === "API_LOGIN_SUCCESS") {
+          setStatus("success")
+          setMessage("تم تسجيل الدخول بنجاح! جارٍ التحديث...")
+          window.removeEventListener("message", handleMessage)
+          
+          // Reload the page to get the new session
+          setTimeout(() => {
+            window.location.href = "/"
+          }, 1000)
+        } else if (event.data.type === "API_LOGIN_ERROR") {
+          setStatus("error")
+          setMessage(event.data.error || "فشل تسجيل الدخول")
+          window.removeEventListener("message", handleMessage)
+        }
+      }
+
+      window.addEventListener("message", handleMessage)
+
+      // Check if popup was blocked
+      if (!popupWindow) {
+        setStatus("error")
+        setMessage("تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة وإعادة المحاولة.")
+      }
+
+      return () => {
+        window.removeEventListener("message", handleMessage)
+      }
+    }
+
+    // Normal authentication flow (direct browser or popup window)
     const authenticateWithApiKey = async () => {
       try {
         const response = await fetch("/api/auth/api-login", {
@@ -36,16 +91,27 @@ function ApiLoginContent() {
         if (!response.ok) {
           setStatus("error")
           setMessage(data.error || "فشل في التحقق من المفتاح")
+          
+          // If this is a popup, notify parent
+          if (popup === "true" && window.opener) {
+            window.opener.postMessage({ type: "API_LOGIN_ERROR", error: data.error }, window.location.origin)
+            setTimeout(() => window.close(), 2000)
+          }
           return
         }
 
         setStatus("success")
         setMessage("تم التحقق بنجاح! جارٍ التوجيه...")
 
-        // Redirect to magic link to complete authentication
+        // Redirect to callback to complete authentication
         if (data.redirectUrl) {
+          // Add popup parameter to redirect URL if we're in popup mode
+          const redirectUrl = popup === "true" 
+            ? `${data.redirectUrl}&popup=true`
+            : data.redirectUrl
+            
           setTimeout(() => {
-            window.location.href = data.redirectUrl
+            window.location.href = redirectUrl
           }, 1500)
         } else {
           // Fallback to home page
@@ -58,6 +124,12 @@ function ApiLoginContent() {
         console.error("API login error:", error)
         setStatus("error")
         setMessage("حدث خطأ في الاتصال بالخادم")
+        
+        // If this is a popup, notify parent
+        if (popup === "true" && window.opener) {
+          window.opener.postMessage({ type: "API_LOGIN_ERROR", error: "حدث خطأ في الاتصال" }, window.location.origin)
+          setTimeout(() => window.close(), 2000)
+        }
       }
     }
 
