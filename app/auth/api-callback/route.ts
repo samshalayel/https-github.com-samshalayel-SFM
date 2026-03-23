@@ -66,7 +66,14 @@ export async function GET(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options)
+              // Ensure cookies work across different contexts
+              response.cookies.set(name, value, {
+                ...options,
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+                httpOnly: true,
+                path: "/",
+              })
             })
           },
         },
