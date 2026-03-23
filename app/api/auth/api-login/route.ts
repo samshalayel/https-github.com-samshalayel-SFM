@@ -61,37 +61,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update last_used_at
-    await supabase
+    // Update last_used_at using service role to bypass RLS
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    await supabaseAdmin
       .from("api_keys")
       .update({ last_used_at: new Date().toISOString() })
       .eq("id", apiKey.id)
 
-    // Get user data
-    const { data: userData, error: userError } = await supabase
-      .from("profiles")
-      .select("id, email, full_name, role")
-      .eq("id", apiKey.user_id)
-      .single()
+    // Get user data from auth.users using admin client
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(apiKey.user_id)
 
-    if (userError || !userData) {
+    if (userError || !userData.user) {
+      console.error("[v0] Error fetching user:", userError)
       return NextResponse.json(
         { error: "المستخدم غير موجود" },
         { status: 404 }
       )
     }
 
-    // Create a session for the user using admin API
-    // Note: This requires service role key for admin operations
-    // For now, we'll return success with user info and let the client handle session
+    // Create a magic link session for the user
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: userData.user.email!,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(request.url).origin : "http://localhost:3000"}/`,
+      },
+    })
+
+    if (linkError || !linkData) {
+      console.error("[v0] Error generating magic link:", linkError)
+      return NextResponse.json(
+        { error: "فشل في إنشاء جلسة تسجيل الدخول" },
+        { status: 500 }
+      )
+    }
+
+    // Extract the token from the magic link
+    const magicLinkUrl = new URL(linkData.properties.action_link)
+    const token = magicLinkUrl.searchParams.get("token")
+    const tokenHash = magicLinkUrl.hash || ""
 
     return NextResponse.json({
       success: true,
+      redirectUrl: linkData.properties.action_link,
       user: {
-        id: userData.id,
-        email: userData.email,
-        full_name: userData.full_name,
-        role: userData.role,
+        id: userData.user.id,
+        email: userData.user.email,
       },
       message: "تم التحقق بنجاح",
     })

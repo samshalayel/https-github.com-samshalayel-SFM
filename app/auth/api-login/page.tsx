@@ -42,11 +42,18 @@ function ApiLoginContent() {
         setStatus("success")
         setMessage("تم التحقق بنجاح! جارٍ التوجيه...")
 
-        // Redirect to home page after successful authentication
-        setTimeout(() => {
-          router.push("/")
-          router.refresh()
-        }, 1500)
+        // Redirect to magic link to complete authentication
+        if (data.redirectUrl) {
+          setTimeout(() => {
+            window.location.href = data.redirectUrl
+          }, 1500)
+        } else {
+          // Fallback to home page
+          setTimeout(() => {
+            router.push("/")
+            router.refresh()
+          }, 1500)
+        }
       } catch (error) {
         console.error("API login error:", error)
         setStatus("error")
