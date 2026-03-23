@@ -110,14 +110,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract the token from the magic link
+    // Extract the token from the magic link and replace Supabase URL with our app URL
     const magicLinkUrl = new URL(linkData.properties.action_link)
-    const token = magicLinkUrl.searchParams.get("token")
-    const tokenHash = magicLinkUrl.hash || ""
+    
+    // Build the correct redirect URL using our app's auth callback
+    const redirectUrl = new URL("/auth/callback", origin)
+    // Copy all search params from the magic link
+    magicLinkUrl.searchParams.forEach((value, key) => {
+      redirectUrl.searchParams.set(key, value)
+    })
+    // Copy hash if exists
+    if (magicLinkUrl.hash) {
+      redirectUrl.hash = magicLinkUrl.hash
+    }
+
+    console.log("[v0] Final redirect URL:", redirectUrl.toString())
 
     return NextResponse.json({
       success: true,
-      redirectUrl: linkData.properties.action_link,
+      redirectUrl: redirectUrl.toString(),
       user: {
         id: userData.user.id,
         email: userData.user.email,
