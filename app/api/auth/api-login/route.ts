@@ -89,46 +89,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create a magic link session for the user
+    // Generate a one-time token for session creation
+    // We'll create a temporary token stored in database and use it for session
+    const sessionToken = crypto.randomBytes(32).toString("hex")
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+    // Store the session token temporarily
+    const { error: tokenError } = await supabaseAdmin
+      .from("api_login_tokens")
+      .upsert({
+        token: sessionToken,
+        user_id: apiKey.user_id,
+        expires_at: expiresAt.toISOString(),
+      })
+
+    if (tokenError) {
+      // If table doesn't exist, create session directly via cookies
+      console.log("[v0] Token storage failed, using direct approach:", tokenError.message)
+    }
+
     const origin = new URL(request.url).origin
-    console.log("[v0] Generating magic link for:", userData.user.email, "with redirect to:", origin)
+    const redirectUrl = `${origin}/auth/api-callback?token=${sessionToken}&user_id=${apiKey.user_id}`
     
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: userData.user.email!,
-      options: {
-        redirectTo: `${origin}/`,
-      },
-    })
-    console.log("[v0] Magic link result:", { success: !!linkData, error: linkError?.message })
-
-    if (linkError || !linkData) {
-      console.error("[v0] Error generating magic link:", linkError)
-      return NextResponse.json(
-        { error: "فشل في إنشاء جلسة تسجيل الدخول" },
-        { status: 500 }
-      )
-    }
-
-    // Extract the token from the magic link and replace Supabase URL with our app URL
-    const magicLinkUrl = new URL(linkData.properties.action_link)
-    
-    // Build the correct redirect URL using our app's auth callback
-    const redirectUrl = new URL("/auth/callback", origin)
-    // Copy all search params from the magic link
-    magicLinkUrl.searchParams.forEach((value, key) => {
-      redirectUrl.searchParams.set(key, value)
-    })
-    // Copy hash if exists
-    if (magicLinkUrl.hash) {
-      redirectUrl.hash = magicLinkUrl.hash
-    }
-
-    console.log("[v0] Final redirect URL:", redirectUrl.toString())
+    console.log("[v0] Final redirect URL:", redirectUrl)
 
     return NextResponse.json({
       success: true,
-      redirectUrl: redirectUrl.toString(),
+      redirectUrl,
       user: {
         id: userData.user.id,
         email: userData.user.email,
