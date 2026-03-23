@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log("[v0] Checking if key is active:", apiKey.is_active)
+    
     // Check if key is active
     if (!apiKey.is_active) {
       return NextResponse.json(
@@ -63,18 +65,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if key has expired
-    if (apiKey.expires_at && new Date(apiKey.expires_at) < new Date()) {
+    const isExpired = apiKey.expires_at && new Date(apiKey.expires_at) < new Date()
+    console.log("[v0] Key expiry check:", { expires_at: apiKey.expires_at, isExpired })
+    
+    if (isExpired) {
       return NextResponse.json(
         { error: "مفتاح API منتهي الصلاحية" },
         { status: 401 }
       )
     }
 
+    console.log("[v0] Updating last_used_at...")
     // Update last_used_at
     await supabaseAdmin
       .from("api_keys")
       .update({ last_used_at: new Date().toISOString() })
       .eq("id", apiKey.id)
+    console.log("[v0] last_used_at updated")
 
     // Get user data from auth.users using admin client
     console.log("[v0] Getting user by ID:", apiKey.user_id)
@@ -89,27 +96,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate a one-time token for session creation
-    // We'll create a temporary token stored in database and use it for session
-    const sessionToken = crypto.randomBytes(32).toString("hex")
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
-
-    // Store the session token temporarily
-    const { error: tokenError } = await supabaseAdmin
-      .from("api_login_tokens")
-      .upsert({
-        token: sessionToken,
-        user_id: apiKey.user_id,
-        expires_at: expiresAt.toISOString(),
-      })
-
-    if (tokenError) {
-      // If table doesn't exist, create session directly via cookies
-      console.log("[v0] Token storage failed, using direct approach:", tokenError.message)
-    }
-
+    // Generate redirect URL with user_id (the callback will create the session)
     const origin = new URL(request.url).origin
-    const redirectUrl = `${origin}/auth/api-callback?token=${sessionToken}&user_id=${apiKey.user_id}`
+    const redirectUrl = `${origin}/auth/api-callback?user_id=${apiKey.user_id}`
     
     console.log("[v0] Final redirect URL:", redirectUrl)
 
