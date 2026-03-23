@@ -27,18 +27,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for api_keys lookup
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Hash the provided key and look it up
     const keyHash = hashApiKey(key)
+    console.log("[v0] Looking up API key with hash:", keyHash)
 
-    const { data: apiKey, error: fetchError } = await supabase
+    const { data: apiKey, error: fetchError } = await supabaseAdmin
       .from("api_keys")
       .select("id, user_id, is_active, expires_at")
       .eq("key_hash", keyHash)
       .single()
 
+    console.log("[v0] API key lookup result:", { apiKey, fetchError })
+
     if (fetchError || !apiKey) {
+      console.log("[v0] API key not found or error:", fetchError?.message)
       return NextResponse.json(
         { error: "مفتاح API غير صالح" },
         { status: 401 }
@@ -61,13 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update last_used_at using service role to bypass RLS
-    const { createClient: createAdminClient } = await import("@supabase/supabase-js")
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    
+    // Update last_used_at
     await supabaseAdmin
       .from("api_keys")
       .update({ last_used_at: new Date().toISOString() })
