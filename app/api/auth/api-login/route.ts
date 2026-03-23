@@ -77,7 +77,9 @@ export async function POST(request: NextRequest) {
       .eq("id", apiKey.id)
 
     // Get user data from auth.users using admin client
+    console.log("[v0] Getting user by ID:", apiKey.user_id)
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(apiKey.user_id)
+    console.log("[v0] User lookup result:", { user: userData?.user?.email, error: userError?.message })
 
     if (userError || !userData.user) {
       console.error("[v0] Error fetching user:", userError)
@@ -88,13 +90,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a magic link session for the user
+    const origin = new URL(request.url).origin
+    console.log("[v0] Generating magic link for:", userData.user.email, "with redirect to:", origin)
+    
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: userData.user.email!,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(request.url).origin : "http://localhost:3000"}/`,
+        redirectTo: `${origin}/`,
       },
     })
+    console.log("[v0] Magic link result:", { success: !!linkData, error: linkError?.message })
 
     if (linkError || !linkData) {
       console.error("[v0] Error generating magic link:", linkError)
