@@ -1685,22 +1685,22 @@ const exportWorkflow = () => {
             </Button>
 
             {/* Save Stage - quick save to project */}
-            {currentProjectId && (
-              <Button
-                onClick={handleSaveStage}
-                size="sm"
-                variant="outline"
-                disabled={!hasUnsavedChanges}
-                className={`rounded-lg px-3 py-2 transition-all font-medium ${
-                  isDarkMode
-                    ? "bg-transparent hover:bg-green-500/10 text-green-500 border-green-500/50 hover:border-green-500 disabled:opacity-40"
-                    : "bg-transparent hover:bg-green-500/10 text-green-600 border-green-500 disabled:opacity-40"
-                }`}
-              >
-                <Save className="h-4 w-4 mr-1.5" />
-                Save Stage
-              </Button>
-            )}
+            <Button
+              onClick={() => {
+                console.log("[v0] Save Stage clicked, currentProjectId:", currentProjectId)
+                handleSaveStage()
+              }}
+              size="sm"
+              variant="outline"
+              className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                isDarkMode
+                  ? "bg-transparent hover:bg-green-500/10 text-green-500 border-green-500/50 hover:border-green-500"
+                  : "bg-transparent hover:bg-green-500/10 text-green-600 border-green-500"
+              }`}
+            >
+              <Save className="h-4 w-4 mr-1.5" />
+              Save Stage
+            </Button>
 
             {/* Save Snapshot - save to snapshots */}
             <Button
