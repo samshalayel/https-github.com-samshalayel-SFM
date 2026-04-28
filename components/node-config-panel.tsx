@@ -241,6 +241,43 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
             />
           </div>
 
+          {/* Points */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Plus className="w-4 h-4 text-green-600" />
+              <Label className="text-green-600 font-semibold">Key Points</Label>
+            </div>
+            <div className="space-y-2">
+              {((localData.points as string[]) || []).map((item, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={item}
+                    onChange={(e) => updateListItem("points", index, e.target.value)}
+                    placeholder="Add point"
+                    className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeListItem("points", index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => addItemToList("points")}
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-green-300 text-green-600 hover:bg-green-50 bg-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Point
+              </Button>
+            </div>
+          </div>
+
           {/* Group Selection */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-blue-600">
@@ -1378,6 +1415,43 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, isDarkM
                 placeholder="Describe what this node does"
                 className="bg-gray-100 border-gray-300 text-gray-900"
               />
+            </div>
+
+            {/* Points */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4 text-green-600" />
+                <Label className="text-green-600 font-semibold">Key Points</Label>
+              </div>
+              <div className="space-y-2">
+                {((localData.points as string[]) || []).map((item, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => updateListItem("points", index, e.target.value)}
+                      placeholder="Add point"
+                      className="flex-1 bg-gray-100 border-gray-300 text-gray-900"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeListItem("points", index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  onClick={() => addItemToList("points")}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed border-green-300 text-green-600 hover:bg-green-50 bg-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Point
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2 py-2">
