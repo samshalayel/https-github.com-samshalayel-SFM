@@ -8,6 +8,7 @@ import SeesawIcon from "./seesaw-icon"
 
 interface SfmNodeLibraryProps {
   isDarkMode?: boolean
+  filterStage?: SfmStage // When set, only shows nodes for this stage
 }
 
 const stageLabels: Record<SfmStage, string> = {
@@ -23,8 +24,14 @@ const stageLabels: Record<SfmStage, string> = {
 
 const stageOrder: SfmStage[] = ["PD", "S0", "S1", "S2", "S3", "S4", "S5", "S6"]
 
-export default function SfmNodeLibrary({ isDarkMode = true }: SfmNodeLibraryProps) {
-  const [expandedStages, setExpandedStages] = useState<Set<SfmStage>>(new Set(["S0", "S1"]))
+export default function SfmNodeLibrary({ isDarkMode = true, filterStage }: SfmNodeLibraryProps) {
+  // When filtering by stage, auto-expand that stage
+  const [expandedStages, setExpandedStages] = useState<Set<SfmStage>>(
+    new Set(filterStage ? [filterStage] : ["S0", "S1"])
+  )
+  
+  // Determine which stages to show
+  const stagesToShow = filterStage ? [filterStage] : stageOrder
 
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string, displayName: string) => {
     event.dataTransfer.setData("application/reactflow", nodeType)
@@ -45,14 +52,14 @@ export default function SfmNodeLibrary({ isDarkMode = true }: SfmNodeLibraryProp
   }
 
   // Group nodes by stage
-  const nodesByStage = stageOrder.reduce((acc, stage) => {
+  const nodesByStage = stagesToShow.reduce((acc, stage) => {
     acc[stage] = Object.entries(sfmNodeRegistry).filter(([, config]) => config.stage === stage)
     return acc
   }, {} as Record<SfmStage, [string, typeof sfmNodeRegistry[string]][]>)
 
   return (
     <div className="flex flex-col gap-2">
-      {stageOrder.map((stage) => {
+      {stagesToShow.map((stage) => {
         const nodes = nodesByStage[stage]
         if (nodes.length === 0) return null
 
