@@ -9,6 +9,9 @@ export interface NodeData {
   // Group and collapse properties
   group?: string
   isCollapsed?: boolean
+  isGroupRepresentative?: boolean
+  hiddenGroupNodes?: string[]
+  groupNodeCount?: number
 
   // Input node properties
   dataSource?: "manual" | "api" | "database" | "file"
