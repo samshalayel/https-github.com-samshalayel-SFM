@@ -68,6 +68,9 @@ import AlignmentGateNode from "./nodes/alignment-gate-node"
 import EvidenceNode from "./nodes/evidence-node"
 import GroupNode from "./nodes/group-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
+import { useMode, type Mode, type Stage } from "@/lib/use-mode"
+import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
+import ModeSwitcher from "./mode-switcher"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
@@ -160,6 +163,19 @@ function WorkflowBuilderInner() {
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
   const [lastSavedState, setLastSavedState] = useState<string>("")
   const [nodeLibraryTab, setNodeLibraryTab] = useState<"sfm" | "basic">("sfm")
+  
+  // Mode management hook
+  const {
+    mode,
+    currentStage,
+    setMode,
+    setCurrentStage,
+    nextStage,
+    prevStage,
+    isEditable,
+    isSandbox,
+    showAllStages,
+  } = useMode("work", "S0")
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -1691,54 +1707,91 @@ const exportWorkflow = () => {
           </div>
         )}
 
-        {/* Seesaw Model Stages Title */}
+        {/* Mode Switcher */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
-          <h2 className={`text-lg font-bold ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
-            SFM Visual Language
-          </h2>
-          <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-            Drag nodes to build your workflow
-          </p>
-          {/* Tab switcher for node libraries */}
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => setNodeLibraryTab("sfm")}
-              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                nodeLibraryTab === "sfm"
-                  ? isDarkMode
-                    ? "bg-[#f26522] text-white"
-                    : "bg-indigo-600 text-white"
-                  : isDarkMode
-                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              SFM Stages
-            </button>
-            <button
-              onClick={() => setNodeLibraryTab("basic")}
-              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                nodeLibraryTab === "basic"
-                  ? isDarkMode
-                    ? "bg-[#f26522] text-white"
-                    : "bg-indigo-600 text-white"
-                  : isDarkMode
-                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              Basic Nodes
-            </button>
-          </div>
+          <ModeSwitcher
+            mode={mode}
+            currentStage={currentStage}
+            onModeChange={setMode}
+            onStageChange={setCurrentStage}
+            onNextStage={nextStage}
+            onPrevStage={prevStage}
+            isDarkMode={isDarkMode}
+            isSandbox={isSandbox}
+          />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {nodeLibraryTab === "sfm" ? (
-            <SfmNodeLibrary isDarkMode={isDarkMode} />
-          ) : (
-            <NodeLibrary isDarkMode={isDarkMode} />
-          )}
-        </div>
+        {/* Seesaw Model Stages Title - Hidden in Pipeline mode */}
+        {mode !== "pipeline" && (
+          <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
+            <h2 className={`text-lg font-bold ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
+              {mode === "training" ? "All Node Types" : `${currentStage} Nodes`}
+            </h2>
+            <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+              {mode === "training" 
+                ? "Sandbox - explore all node types"
+                : "Drag nodes to build your workflow"
+              }
+            </p>
+            {/* Tab switcher for node libraries */}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setNodeLibraryTab("sfm")}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  nodeLibraryTab === "sfm"
+                    ? isDarkMode
+                      ? "bg-[#f26522] text-white"
+                      : "bg-indigo-600 text-white"
+                    : isDarkMode
+                      ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                SFM Stages
+              </button>
+              <button
+                onClick={() => setNodeLibraryTab("basic")}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  nodeLibraryTab === "basic"
+                    ? isDarkMode
+                      ? "bg-[#f26522] text-white"
+                      : "bg-indigo-600 text-white"
+                    : isDarkMode
+                      ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Basic Nodes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Node Library - Hidden in Pipeline mode */}
+        {mode !== "pipeline" && (
+          <div className="flex-1 overflow-y-auto p-4">
+            {nodeLibraryTab === "sfm" ? (
+              <SfmNodeLibrary 
+                isDarkMode={isDarkMode} 
+                filterStage={mode === "work" ? currentStage : undefined}
+              />
+            ) : (
+              <NodeLibrary isDarkMode={isDarkMode} />
+            )}
+          </div>
+        )}
+        
+        {/* Pipeline mode message */}
+        {mode === "pipeline" && (
+          <div className={`flex-1 flex items-center justify-center p-4 ${
+            isDarkMode ? "text-gray-500" : "text-gray-400"
+          }`}>
+            <p className="text-center text-sm">
+              Pipeline view is read-only.<br />
+              Switch to Work mode to edit.
+            </p>
+          </div>
+        )}
       </div>
 
       <button
@@ -1913,15 +1966,23 @@ const exportWorkflow = () => {
           </div>
 
           <ReactFlow
-              nodes={nodes}
+              nodes={nodes.map((node) => ({
+                ...node,
+                // Lock nodes in pipeline mode
+                draggable: isEditable,
+                selectable: isEditable,
+                connectable: isEditable,
+                // Add locked styling class
+                className: !isEditable ? `${node.className || ""} opacity-70 cursor-not-allowed` : node.className,
+              }))}
               edges={edges}
-              onNodesChange={onNodesChange}
- onEdgesChange={onEdgesChange}
-  onConnect={onConnect}
-  onEdgesDelete={onEdgesDelete}
-  onInit={setReactFlowInstance}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
+              onNodesChange={isEditable ? onNodesChange : undefined}
+              onEdgesChange={isEditable ? onEdgesChange : undefined}
+              onConnect={isEditable ? onConnect : undefined}
+              onEdgesDelete={isEditable ? onEdgesDelete : undefined}
+              onInit={setReactFlowInstance}
+              onDrop={isEditable ? onDrop : undefined}
+              onDragOver={isEditable ? onDragOver : undefined}
               onNodeClick={onNodeClick}
               onPaneClick={onPaneClick}
               nodeTypes={nodeTypes}
@@ -1930,8 +1991,14 @@ const exportWorkflow = () => {
               snapToGrid
               snapGrid={[15, 15]}
               defaultEdgeOptions={{ type: "custom" }}
-              className="relative z-10"
+              className={`relative z-10 ${!isEditable ? "pointer-events-auto" : ""}`}
               style={{ width: '100%', height: '100%' }}
+              // Disable interactions in pipeline mode
+              nodesDraggable={isEditable}
+              nodesConnectable={isEditable}
+              elementsSelectable={isEditable}
+              zoomOnScroll={true}
+              panOnScroll={true}
             >
               <Background color={isDarkMode ? "#2a2a4a" : "#d1d5db"} gap={20} size={1} className="opacity-30" />
               <Controls
