@@ -4,11 +4,17 @@ import type React from "react"
 import { Handle, Position, useReactFlow } from "reactflow"
 import { Trash2, Compass, ChevronDown, ChevronUp, FolderOpen } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
+import EditableDescription from "./editable-description"
+import EditablePointsList from "./editable-points-list"
 
 interface DirectionNodeProps {
   data: {
     label: string
     description?: string
+    points?: string[]
+    // Legacy fields
+    items?: string[]
+    values?: string[]
     humanPercentage?: number
     aiPercentage?: number
     directionType?: string
@@ -24,6 +30,30 @@ export default function DirectionNode({ data, id }: DirectionNodeProps) {
   const aiPercent = typeof data.aiPercentage === "number" ? data.aiPercentage : 10
   const { deleteElements, setNodes } = useReactFlow()
   const isCollapsed = data.isCollapsed || false
+
+  // Unified data structure with fallback for legacy fields
+  const description = data.description ?? ""
+  const points = data.points ?? data.items ?? data.values ?? []
+
+  const handleDescriptionChange = (newDescription: string) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, description: newDescription } }
+          : node
+      )
+    )
+  }
+
+  const handlePointsChange = (newPoints: string[]) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, points: newPoints } }
+          : node
+      )
+    )
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -146,9 +176,21 @@ export default function DirectionNode({ data, id }: DirectionNodeProps) {
 
         <div className="font-bold text-sm text-gray-900 mb-2 text-center">{data.label}</div>
 
-        {data.description && (
-          <div className="text-xs text-gray-600 leading-relaxed text-center">{data.description}</div>
-        )}
+        {/* Editable description */}
+        <EditableDescription
+          description={description}
+          onChange={handleDescriptionChange}
+          placeholder="Click to add direction description..."
+        />
+
+        {/* Editable points list */}
+        <div className="mt-3">
+          <EditablePointsList
+            points={points}
+            onChange={handlePointsChange}
+            placeholder="Add direction point..."
+          />
+        </div>
 
         {/* Tooltip */}
         <div className="mt-3 px-2 py-1.5 bg-indigo-50 rounded-lg border border-indigo-200">

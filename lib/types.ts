@@ -6,6 +6,18 @@ export interface NodeData {
   description?: string
   required?: boolean
   
+  // Unified content structure
+  points?: string[]
+  
+  // Scope node specific (exception to standard structure)
+  inScope?: string[]
+  outScope?: string[]
+  
+  // Legacy fields (mapped to points for backwards compatibility)
+  items?: string[]
+  values?: string[]
+  content?: string[]
+  
   // Group and collapse properties
   group?: string
   isCollapsed?: boolean

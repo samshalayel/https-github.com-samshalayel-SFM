@@ -67,6 +67,7 @@ import DirectionNode from "./nodes/direction-node"
 import AlignmentGateNode from "./nodes/alignment-gate-node"
 import EvidenceNode from "./nodes/evidence-node"
 import GroupNode from "./nodes/group-node"
+import ScopeNode from "./nodes/scope-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
@@ -130,6 +131,7 @@ const baseNodeTypes: NodeTypes = {
   "alignment-gate": AlignmentGateNode,
   "evidence-node": EvidenceNode,
   "group": GroupNode,
+  "scope-node": ScopeNode,
 }
 
 // Merge base node types with SFM registry-based nodes
