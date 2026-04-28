@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2, Group, Ungroup } from "lucide-react"
 import NodeLibrary from "./node-library"
+import SfmNodeLibrary from "./sfm-node-library"
 import NodeConfigPanel from "./node-config-panel"
 import CustomEdge from "./custom-edge"
 import { InputNode } from "./nodes/input-node"
@@ -66,6 +67,7 @@ import DirectionNode from "./nodes/direction-node"
 import AlignmentGateNode from "./nodes/alignment-gate-node"
 import EvidenceNode from "./nodes/evidence-node"
 import GroupNode from "./nodes/group-node"
+import { sfmNodeTypes } from "@/lib/sfm-node-types"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
@@ -85,7 +87,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const nodeTypes: NodeTypes = {
+// Base node types (factory/workflow nodes)
+const baseNodeTypes: NodeTypes = {
   input: InputNode,
   output: OutputNode,
   process: ProcessNode,
@@ -105,6 +108,7 @@ const nodeTypes: NodeTypes = {
   testing: TestingNode,
   storage: StorageNode,
   "raw-material": RawMaterialNode,
+  // Legacy stage nodes (kept for backward compatibility)
   "stage-0": Stage0Node,
   "stage-1": Stage1Node,
   "stage-2": Stage2Node,
@@ -123,6 +127,13 @@ const nodeTypes: NodeTypes = {
   "alignment-gate": AlignmentGateNode,
   "evidence-node": EvidenceNode,
   "group": GroupNode,
+}
+
+// Merge base node types with SFM registry-based nodes
+// SFM nodes take precedence for overlapping types
+const nodeTypes: NodeTypes = {
+  ...baseNodeTypes,
+  ...sfmNodeTypes,
 }
 
 const edgeTypes: EdgeTypes = {
@@ -148,6 +159,7 @@ function WorkflowBuilderInner() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
   const [lastSavedState, setLastSavedState] = useState<string>("")
+  const [nodeLibraryTab, setNodeLibraryTab] = useState<"sfm" | "basic">("sfm")
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -1682,15 +1694,50 @@ const exportWorkflow = () => {
         {/* Seesaw Model Stages Title */}
         <div className={`p-4 border-b ${isDarkMode ? "border-white/5" : "border-gray-200"}`}>
           <h2 className={`text-lg font-bold ${isDarkMode ? "text-[#f26522]" : "text-gray-900"}`}>
-            Seesaw Model Stages
+            SFM Visual Language
           </h2>
           <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-            Drag stages to build your workflow
+            Drag nodes to build your workflow
           </p>
+          {/* Tab switcher for node libraries */}
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setNodeLibraryTab("sfm")}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                nodeLibraryTab === "sfm"
+                  ? isDarkMode
+                    ? "bg-[#f26522] text-white"
+                    : "bg-indigo-600 text-white"
+                  : isDarkMode
+                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              SFM Stages
+            </button>
+            <button
+              onClick={() => setNodeLibraryTab("basic")}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                nodeLibraryTab === "basic"
+                  ? isDarkMode
+                    ? "bg-[#f26522] text-white"
+                    : "bg-indigo-600 text-white"
+                  : isDarkMode
+                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Basic Nodes
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <NodeLibrary isDarkMode={isDarkMode} />
+          {nodeLibraryTab === "sfm" ? (
+            <SfmNodeLibrary isDarkMode={isDarkMode} />
+          ) : (
+            <NodeLibrary isDarkMode={isDarkMode} />
+          )}
         </div>
       </div>
 
