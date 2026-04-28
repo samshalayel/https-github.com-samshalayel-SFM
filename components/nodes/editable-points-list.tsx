@@ -23,8 +23,8 @@ export default function EditablePointsList({
   const [editValue, setEditValue] = useState("")
   const [newValue, setNewValue] = useState("")
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleAdd = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation()
     if (newValue.trim() && points.length < maxItems) {
       onChange([...points, newValue.trim()])
       setNewValue("")
@@ -56,13 +56,15 @@ export default function EditablePointsList({
   const handleKeyDown = (e: React.KeyboardEvent, action: "add" | "edit") => {
     if (e.key === "Enter") {
       e.preventDefault()
+      e.stopPropagation()
       if (action === "add") {
-        handleAdd()
+        handleAdd(e)
       } else {
         handleSaveEdit()
       }
     }
     if (e.key === "Escape") {
+      e.stopPropagation()
       setEditingIndex(null)
       setEditValue("")
       setNewValue("")

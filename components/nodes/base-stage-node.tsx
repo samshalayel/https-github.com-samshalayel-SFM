@@ -56,12 +56,15 @@ export default function BaseStageNode({
   }
 
   const handlePointsChange = (newPoints: string[]) => {
+    console.log("[v0] handlePointsChange called with:", newPoints, "for node:", id)
     setNodes((nodes) =>
-      nodes.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, points: newPoints } }
-          : node
-      )
+      nodes.map((node) => {
+        if (node.id === id) {
+          console.log("[v0] Updating node data:", { ...node.data, points: newPoints })
+          return { ...node, data: { ...node.data, points: newPoints } }
+        }
+        return node
+      })
     )
   }
 
