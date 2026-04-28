@@ -45,6 +45,7 @@ export function useProjectStages(projectId: string | null) {
 
   // Load all stages for a project
   const loadStages = useCallback(async () => {
+    console.log("[v0] loadStages called with projectId:", projectId)
     if (!projectId) {
       setStages([])
       return
@@ -60,9 +61,36 @@ export function useProjectStages(projectId: string | null) {
         .eq("project_id", projectId)
         .order("stage_code", { ascending: true })
 
+      console.log("[v0] loadStages result:", { data, error: fetchError })
+
       if (fetchError) throw fetchError
 
-      setStages(data || [])
+      // If no stages exist, create them
+      if (!data || data.length === 0) {
+        console.log("[v0] No stages found, creating them...")
+        const stagesToCreate = stageOrder.map(code => ({
+          project_id: projectId,
+          stage_code: code,
+          status: "not_started" as StageStatus,
+          nodes_data: [],
+          edges_data: [],
+          evidence_data: {},
+        }))
+
+        const { data: createdStages, error: createError } = await supabase
+          .from("project_stages")
+          .insert(stagesToCreate)
+          .select()
+
+        if (createError) {
+          console.error("[v0] Error creating stages:", createError)
+        } else {
+          console.log("[v0] Stages created:", createdStages)
+          setStages(createdStages || [])
+        }
+      } else {
+        setStages(data)
+      }
 
       // Also get current stage from project
       const { data: projectData } = await supabase
@@ -99,11 +127,20 @@ export function useProjectStages(projectId: string | null) {
     edges: Edge[],
     evidence?: Record<string, any>
   ) => {
-    if (!projectId) return false
+    console.log("[v0] saveStageData called:", { projectId, stageCode, nodesCount: nodes.length })
+    if (!projectId) {
+      console.log("[v0] No projectId, returning false")
+      return false
+    }
 
     try {
       const stage = getStage(stageCode)
-      if (!stage) return false
+      console.log("[v0] Found stage:", stage)
+      if (!stage) {
+        console.log("[v0] Stage not found, checking all stages:", stages)
+        // Try to create the stage if it doesn't exist
+        return false
+      }
 
       const updateData: Partial<ProjectStage> = {
         nodes_data: nodes,
