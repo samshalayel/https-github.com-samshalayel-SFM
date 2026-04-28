@@ -91,7 +91,11 @@ export default function SettingsDialog({
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      console.log("[v0] loadProjects - user:", user?.id)
+      if (!user) {
+        console.log("[v0] No user found, cannot load projects")
+        return
+      }
 
       const { data, error } = await supabase
         .from("projects")
@@ -99,10 +103,12 @@ export default function SettingsDialog({
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
 
+      console.log("[v0] loadProjects - data:", data, "error:", error)
+
       if (error) throw error
       setProjects(data || [])
     } catch (error) {
-      console.error("Error loading projects:", error)
+      console.error("[v0] Error loading projects:", error)
     } finally {
       setIsLoading(false)
     }
@@ -210,6 +216,8 @@ export default function SettingsDialog({
         user_id: user.id,
       }
 
+      let savedProjectId = selectedProjectId
+
       if (selectedProjectId) {
         // Update existing project
         const { error } = await supabase
@@ -217,17 +225,27 @@ export default function SettingsDialog({
           .update(projectData)
           .eq("id", selectedProjectId)
 
-        if (error) throw error
+        if (error) {
+          console.error("[v0] Error updating project:", error)
+          throw error
+        }
+        console.log("[v0] Project updated successfully:", selectedProjectId)
       } else {
         // Create new project
+        console.log("[v0] Creating new project with data:", projectData)
         const { data, error } = await supabase
           .from("projects")
           .insert(projectData)
           .select()
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error("[v0] Error creating project:", error)
+          throw error
+        }
         if (data) {
+          console.log("[v0] Project created successfully:", data)
+          savedProjectId = data.id
           setSelectedProjectId(data.id)
         }
       }
@@ -239,7 +257,7 @@ export default function SettingsDialog({
       }))
 
       // Notify parent of project change
-      onProjectChange?.(selectedProjectId, settings.projectName)
+      onProjectChange?.(savedProjectId, settings.projectName)
 
       await loadProjects()
       setActiveTab("projects")
