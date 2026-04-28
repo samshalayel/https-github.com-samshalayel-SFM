@@ -5,6 +5,8 @@ import { memo } from "react"
 import { Handle, Position, useReactFlow, type NodeProps } from "reactflow"
 import { Trash2, ChevronDown, ChevronUp, FolderOpen } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
+import EditableDescription from "./editable-description"
+import EditablePointsList from "./editable-points-list"
 import { getNodeConfig, colorMap, type SfmNodeConfig } from "@/lib/sfm-node-registry"
 import type { NodeData } from "@/lib/types"
 
@@ -31,6 +33,30 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
   const humanPercent = typeof data.humanPercentage === "number" ? data.humanPercentage : (config.defaultHumanPercent ?? 50)
   const aiPercent = typeof data.aiPercentage === "number" ? data.aiPercentage : (config.defaultAiPercent ?? 50)
   const isHorizontal = config.handlePosition === "horizontal"
+
+  // Unified data structure with fallback for legacy fields
+  const description = data.description ?? ""
+  const points = data.points ?? (data as any).items ?? (data as any).values ?? []
+
+  const handleDescriptionChange = (newDescription: string) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, description: newDescription } }
+          : node
+      )
+    )
+  }
+
+  const handlePointsChange = (newPoints: string[]) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, points: newPoints } }
+          : node
+      )
+    )
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -153,20 +179,21 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
         {/* Gradient bar */}
         <div className={`h-1 bg-gradient-to-r ${colors.gradient} rounded-full mb-3`}></div>
 
-        {data.description && (
-          <div className="text-xs text-gray-600 leading-relaxed text-center mb-3">
-            {data.description}
-          </div>
-        )}
+        {/* Editable description */}
+        <EditableDescription
+          description={description}
+          onChange={handleDescriptionChange}
+          placeholder={config.tooltip || "Click to add description..."}
+        />
 
-        {/* Tooltip */}
-        {config.tooltip && !data.description && (
-          <div className="mt-2 px-2 py-1.5 bg-gray-100 rounded-lg">
-            <p className="text-[10px] text-gray-500 italic text-center">
-              {config.tooltip}
-            </p>
-          </div>
-        )}
+        {/* Editable points list */}
+        <div className="mt-3">
+          <EditablePointsList
+            points={points}
+            onChange={handlePointsChange}
+            placeholder="Add a point..."
+          />
+        </div>
       </div>
 
       <Handle 

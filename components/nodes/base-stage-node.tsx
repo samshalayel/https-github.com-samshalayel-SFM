@@ -4,11 +4,17 @@ import type React from "react"
 import { Handle, Position, useReactFlow } from "reactflow"
 import { Trash2, ChevronDown, ChevronUp, FolderOpen } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
+import EditableDescription from "./editable-description"
+import EditablePointsList from "./editable-points-list"
 
 interface BaseStageNodeProps {
   data: {
     label: string
     description?: string
+    points?: string[]
+    // Legacy fields for backwards compatibility
+    items?: string[]
+    values?: string[]
     humanPercentage?: number
     aiPercentage?: number
     group?: string
@@ -34,6 +40,30 @@ export default function BaseStageNode({
   const aiPercent = typeof data.aiPercentage === "number" ? data.aiPercentage : defaultAiPercent
   const { deleteElements, setNodes } = useReactFlow()
   const isCollapsed = data.isCollapsed || false
+
+  // Unified data structure with fallback for legacy fields
+  const description = data.description ?? ""
+  const points = data.points ?? data.items ?? data.values ?? []
+
+  const handleDescriptionChange = (newDescription: string) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, description: newDescription } }
+          : node
+      )
+    )
+  }
+
+  const handlePointsChange = (newPoints: string[]) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, points: newPoints } }
+          : node
+      )
+    )
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -133,8 +163,22 @@ export default function BaseStageNode({
         {/* Gradient bar */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-3"></div>
 
-        {data.description && (
-          <div className="text-xs text-gray-600 leading-relaxed text-center">{data.description}</div>
+        {/* Editable description */}
+        <EditableDescription
+          description={description}
+          onChange={handleDescriptionChange}
+          placeholder="Click to add description..."
+        />
+
+        {/* Editable points list */}
+        {(points.length > 0 || true) && (
+          <div className="mt-3">
+            <EditablePointsList
+              points={points}
+              onChange={handlePointsChange}
+              placeholder="Add a point..."
+            />
+          </div>
         )}
       </div>
 
