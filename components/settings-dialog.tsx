@@ -91,11 +91,7 @@ export default function SettingsDialog({
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      console.log("[v0] loadProjects - user:", user?.id)
-      if (!user) {
-        console.log("[v0] No user found, cannot load projects")
-        return
-      }
+      if (!user) return
 
       const { data, error } = await supabase
         .from("projects")
@@ -103,12 +99,10 @@ export default function SettingsDialog({
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
 
-      console.log("[v0] loadProjects - data:", data, "error:", error)
-
       if (error) throw error
       setProjects(data || [])
     } catch (error) {
-      console.error("[v0] Error loading projects:", error)
+      console.error("Error loading projects:", error)
     } finally {
       setIsLoading(false)
     }
@@ -225,26 +219,17 @@ export default function SettingsDialog({
           .update(projectData)
           .eq("id", selectedProjectId)
 
-        if (error) {
-          console.error("[v0] Error updating project:", error)
-          throw error
-        }
-        console.log("[v0] Project updated successfully:", selectedProjectId)
+        if (error) throw error
       } else {
         // Create new project
-        console.log("[v0] Creating new project with data:", projectData)
         const { data, error } = await supabase
           .from("projects")
           .insert(projectData)
           .select()
           .single()
 
-        if (error) {
-          console.error("[v0] Error creating project:", error)
-          throw error
-        }
+        if (error) throw error
         if (data) {
-          console.log("[v0] Project created successfully:", data)
           savedProjectId = data.id
           setSelectedProjectId(data.id)
         }
@@ -447,11 +432,14 @@ export default function SettingsDialog({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {project.company_logo_url ? (
+                          {project.company_logo_url && !project.company_logo_url.startsWith("blob:") ? (
                             <img 
                               src={project.company_logo_url} 
                               alt="Logo" 
                               className="h-10 w-10 rounded-lg object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none"
+                              }}
                             />
                           ) : (
                             <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
@@ -570,11 +558,14 @@ export default function SettingsDialog({
                   Company Logo
                 </Label>
                 <div className="flex items-center gap-4">
-                  {settings.logoUrl && (
+                  {settings.logoUrl && !settings.logoUrl.startsWith("blob:") && (
                     <img 
                       src={settings.logoUrl} 
                       alt="Logo preview" 
                       className="h-12 w-12 rounded-lg object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none"
+                      }}
                     />
                   )}
                   <label
