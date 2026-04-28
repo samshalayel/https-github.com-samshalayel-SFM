@@ -23,8 +23,8 @@ export default function EditablePointsList({
   const [editValue, setEditValue] = useState("")
   const [newValue, setNewValue] = useState("")
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleAdd = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation()
     if (newValue.trim() && points.length < maxItems) {
       onChange([...points, newValue.trim()])
       setNewValue("")
@@ -56,13 +56,15 @@ export default function EditablePointsList({
   const handleKeyDown = (e: React.KeyboardEvent, action: "add" | "edit") => {
     if (e.key === "Enter") {
       e.preventDefault()
+      e.stopPropagation()
       if (action === "add") {
-        handleAdd()
+        handleAdd(e)
       } else {
         handleSaveEdit()
       }
     }
     if (e.key === "Escape") {
+      e.stopPropagation()
       setEditingIndex(null)
       setEditValue("")
       setNewValue("")
@@ -85,7 +87,7 @@ export default function EditablePointsList({
                   onKeyDown={(e) => handleKeyDown(e, "edit")}
                   onBlur={handleSaveEdit}
                   autoFocus
-                  className="flex-1 text-xs px-1.5 py-0.5 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="flex-1 text-xs px-1.5 py-0.5 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 bg-white"
                 />
                 <button
                   onClick={(e) => handleSaveEdit(e)}
@@ -130,7 +132,7 @@ export default function EditablePointsList({
             onClick={(e) => e.stopPropagation()}
             onFocus={(e) => e.stopPropagation()}
             placeholder={placeholder}
-            className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-300"
+            className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-300 text-gray-900 bg-white"
           />
           <button
             onClick={handleAdd}

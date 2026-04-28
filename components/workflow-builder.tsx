@@ -161,6 +161,7 @@ function WorkflowBuilderInner() {
   const [isGitHubImportOpen, setIsGitHubImportOpen] = useState(false)
   const [evidence, setEvidence] = useState<Evidence[]>([])
   const [currentProjectName, setCurrentProjectName] = useState<string | null>(null)
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
   const [lastSavedState, setLastSavedState] = useState<string>("")
@@ -2079,7 +2080,16 @@ const exportWorkflow = () => {
         />
       )}
 
-      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} isDarkMode={isDarkMode} />
+      <SettingsDialog 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        isDarkMode={isDarkMode}
+        currentProjectId={currentProjectId}
+        onProjectChange={(projectId, projectName) => {
+          setCurrentProjectId(projectId)
+          setCurrentProjectName(projectName)
+        }}
+      />
 
       <SaveLoadDialog
         isOpen={isSaveLoadOpen}
