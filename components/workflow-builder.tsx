@@ -68,6 +68,7 @@ import AlignmentGateNode from "./nodes/alignment-gate-node"
 import EvidenceNode from "./nodes/evidence-node"
 import GroupNode from "./nodes/group-node"
 import ScopeNode from "./nodes/scope-node"
+import PipelineStageNode from "./nodes/pipeline-stage-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
@@ -133,6 +134,7 @@ const baseNodeTypes: NodeTypes = {
   "evidence-node": EvidenceNode,
   "group": GroupNode,
   "scope-node": ScopeNode,
+  "pipeline-stage": PipelineStageNode,
 }
 
 // Merge base node types with SFM registry-based nodes
@@ -246,14 +248,23 @@ function WorkflowBuilderInner() {
     }
   }, [currentProjectId, projectCurrentStage, projectStages, mode])
 
-  // Load all stages data for Pipeline view
+  // Load all stages data for Pipeline view (collapsed by default)
+  const [pipelineCollapsed, setPipelineCollapsed] = useState(true)
+  
   useEffect(() => {
     if (currentProjectId && mode === "pipeline") {
-      const { nodes: allNodes, edges: allEdges } = getAllStagesData()
+      const { nodes: allNodes, edges: allEdges } = getAllStagesData(pipelineCollapsed)
       setNodes(allNodes)
       setEdges(allEdges)
+      
+      // Auto-fit view after loading pipeline
+      setTimeout(() => {
+        if (reactFlowInstance) {
+          reactFlowInstance.fitView({ padding: 0.2 })
+        }
+      }, 100)
     }
-  }, [currentProjectId, mode, projectStages])
+  }, [currentProjectId, mode, projectStages, pipelineCollapsed])
 
   // Save current stage data
   const handleSaveStage = async () => {
@@ -1894,15 +1905,62 @@ const exportWorkflow = () => {
           </div>
         )}
         
-        {/* Pipeline mode message */}
+        {/* Pipeline mode controls */}
         {mode === "pipeline" && (
-          <div className={`flex-1 flex items-center justify-center p-4 ${
-            isDarkMode ? "text-gray-500" : "text-gray-400"
+          <div className={`flex-1 flex flex-col p-4 ${
+            isDarkMode ? "text-gray-400" : "text-gray-600"
           }`}>
-            <p className="text-center text-sm">
+            <div className="mb-4">
+              <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                Pipeline View
+              </h3>
+              <p className="text-xs mb-4">
+                Viewing all project stages. Click on a stage to expand/collapse.
+              </p>
+              
+              {/* Toggle collapse button */}
+              <button
+                onClick={() => setPipelineCollapsed(!pipelineCollapsed)}
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isDarkMode
+                    ? "bg-white/10 hover:bg-white/20 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                }`}
+              >
+                {pipelineCollapsed ? "Expand All Stages" : "Collapse All Stages"}
+              </button>
+            </div>
+
+            {/* Stage legend */}
+            <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? "bg-white/5" : "bg-gray-50"}`}>
+              <h4 className={`text-xs font-semibold mb-2 ${isDarkMode ? "text-white/70" : "text-gray-700"}`}>
+                Status Legend
+              </h4>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-500/30"></div>
+                  <span>Not Started</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500/50"></div>
+                  <span>In Progress</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                  <span>Completed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                  <span>Blocked</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Read-only notice */}
+            <div className={`mt-auto pt-4 text-xs text-center ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
               Pipeline view is read-only.<br />
               Switch to Work mode to edit.
-            </p>
+            </div>
           </div>
         )}
       </div>
