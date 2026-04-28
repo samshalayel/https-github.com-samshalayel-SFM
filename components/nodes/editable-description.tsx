@@ -20,17 +20,20 @@ export default function EditableDescription({
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(description)
 
-  const handleStartEdit = () => {
+  const handleStartEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setEditValue(description)
     setIsEditing(true)
   }
 
-  const handleSave = () => {
+  const handleSave = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
     onChange(editValue.trim())
     setIsEditing(false)
   }
 
-  const handleCancel = () => {
+  const handleCancel = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
     setEditValue(description)
     setIsEditing(false)
   }
@@ -48,11 +51,13 @@ export default function EditableDescription({
 
   if (isEditing) {
     return (
-      <div className={`space-y-1.5 ${className}`}>
+      <div className={`space-y-1.5 ${className}`} onClick={(e) => e.stopPropagation()}>
         <textarea
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
           autoFocus
           rows={3}
           placeholder={placeholder}
@@ -60,14 +65,14 @@ export default function EditableDescription({
         />
         <div className="flex items-center justify-end gap-1">
           <button
-            onClick={handleCancel}
+            onClick={(e) => handleCancel(e)}
             className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
             title="Cancel (Esc)"
           >
             <X className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={handleSave}
+            onClick={(e) => handleSave(e)}
             className="p-1 text-green-600 hover:bg-green-50 rounded"
             title="Save (Ctrl+Enter)"
           >
@@ -79,14 +84,14 @@ export default function EditableDescription({
   }
 
   return (
-    <div className={`group relative ${className}`}>
+    <div className={`group relative ${className}`} onClick={(e) => e.stopPropagation()}>
       {description ? (
         <p className="text-xs text-gray-600 leading-relaxed text-center">{description}</p>
       ) : (
         <p className="text-xs text-gray-400 italic text-center">{placeholder}</p>
       )}
       <button
-        onClick={handleStartEdit}
+        onClick={(e) => handleStartEdit(e)}
         className="absolute -top-1 -right-1 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
         title="Edit description"
       >
