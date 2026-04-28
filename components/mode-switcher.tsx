@@ -17,34 +17,31 @@ interface ModeSwitcherProps {
 
 const modeConfig = {
   work: {
-    label: "عمل",
-    labelEn: "Work",
+    label: "Work",
     icon: Briefcase,
-    description: "التركيز على المرحلة الحالية",
+    description: "Focus on current stage",
   },
   pipeline: {
-    label: "مسار",
-    labelEn: "Pipeline",
+    label: "Pipeline",
     icon: GitBranch,
-    description: "عرض المسار الكامل (للقراءة فقط)",
+    description: "View full workflow (read-only)",
   },
   training: {
-    label: "تدريب",
-    labelEn: "Training",
+    label: "Training",
     icon: GraduationCap,
-    description: "وضع التجريب والتعلم",
+    description: "Sandbox mode for learning",
   },
 }
 
 const stageLabels: Record<Stage, string> = {
-  PD: "اكتشاف المشكلة",
-  S0: "تثبيت المشكلة",
-  S1: "شكل المنتج",
-  S2: "الهيكلة",
-  S3: "التطوير",
-  S4: "البناء",
-  S5: "الإطلاق",
-  S6: "التعلم والتكرار",
+  PD: "Problem Discovery",
+  S0: "Problem Lock",
+  S1: "Product Shape",
+  S2: "Architecture",
+  S3: "Development",
+  S4: "Build",
+  S5: "Release",
+  S6: "Learn & Iterate",
 }
 
 export default function ModeSwitcher({
@@ -165,7 +162,7 @@ export default function ModeSwitcher({
           }
         `}>
           <AlertTriangle className="w-4 h-4" />
-          <span>وضع التجريب - التغييرات لن تُحفظ في الإنتاج</span>
+          <span>Sandbox Mode - Changes won&apos;t be saved to production</span>
         </div>
       )}
 
@@ -179,7 +176,7 @@ export default function ModeSwitcher({
           }
         `}>
           <GitBranch className="w-4 h-4" />
-          <span>عرض المسار الكامل (للقراءة فقط)</span>
+          <span>Read-only view of full pipeline</span>
         </div>
       )}
     </div>
