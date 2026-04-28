@@ -198,18 +198,111 @@ export function useProjectStages(projectId: string | null) {
     }
   }, [projectId, supabase])
 
-  // Get all nodes and edges combined (for Pipeline view)
-  const getAllStagesData = useCallback(() => {
+  // Get all nodes and edges combined (for Pipeline view) with stage groups
+  const getAllStagesData = useCallback((collapsed: boolean = true) => {
     const allNodes: Node[] = []
     const allEdges: Edge[] = []
+    const stageSpacing = 400 // Horizontal spacing between stages
+    const groupWidth = 350
+    const groupHeight = 300
 
-    stages.forEach(stage => {
-      allNodes.push(...(stage.nodes_data || []))
-      allEdges.push(...(stage.edges_data || []))
+    stageOrder.forEach((stageCode, index) => {
+      const stage = stages.find(s => s.stage_code === stageCode)
+      const stageNodes = stage?.nodes_data || []
+      const stageEdges = stage?.edges_data || []
+      const xOffset = index * stageSpacing
+      const yOffset = 50
+
+      // Create a parent group node for each stage
+      const groupNodeId = `stage-group-${stageCode}`
+      const groupNode: Node = {
+        id: groupNodeId,
+        type: "pipeline-stage",
+        position: { x: xOffset, y: yOffset },
+        data: {
+          label: `${stageCode} - ${stageLabels[stageCode]}`,
+          status: stage?.status || "not_started",
+          nodeCount: stageNodes.length,
+          isCollapsed: collapsed,
+          stageCode: stageCode,
+        },
+        style: {
+          width: groupWidth,
+          height: collapsed ? 100 : groupHeight,
+        },
+      }
+      allNodes.push(groupNode)
+
+      // If not collapsed, add child nodes positioned relative to group
+      if (!collapsed && stageNodes.length > 0) {
+        stageNodes.forEach((node, nodeIndex) => {
+          const childNode: Node = {
+            ...node,
+            id: `${stageCode}-${node.id}`, // Prefix to avoid ID conflicts
+            position: {
+              x: 20,
+              y: 60 + nodeIndex * 80,
+            },
+            parentNode: groupNodeId,
+            extent: "parent" as const,
+            draggable: false,
+            data: {
+              ...node.data,
+              isCollapsed: true, // Collapse individual nodes in pipeline view
+            },
+          }
+          allNodes.push(childNode)
+        })
+
+        // Update group height based on node count
+        groupNode.style = {
+          ...groupNode.style,
+          height: Math.max(groupHeight, 80 + stageNodes.length * 80),
+        }
+      }
+
+      // Add edges between stages (connecting groups)
+      if (index > 0) {
+        const prevStageCode = stageOrder[index - 1]
+        allEdges.push({
+          id: `edge-${prevStageCode}-${stageCode}`,
+          source: `stage-group-${prevStageCode}`,
+          target: `stage-group-${stageCode}`,
+          type: "smoothstep",
+          animated: stage?.status === "in_progress",
+          style: { stroke: "#888", strokeWidth: 2 },
+        })
+      }
+
+      // Add internal edges if not collapsed
+      if (!collapsed) {
+        stageEdges.forEach(edge => {
+          allEdges.push({
+            ...edge,
+            id: `${stageCode}-${edge.id}`,
+            source: `${stageCode}-${edge.source}`,
+            target: `${stageCode}-${edge.target}`,
+          })
+        })
+      }
     })
 
     return { nodes: allNodes, edges: allEdges }
   }, [stages])
+
+  // Helper function to get stage color based on status
+  const getStageColor = (status: StageStatus): string => {
+    switch (status) {
+      case "completed":
+        return "rgba(34, 197, 94, 0.15)" // Green
+      case "in_progress":
+        return "rgba(59, 130, 246, 0.15)" // Blue
+      case "blocked":
+        return "rgba(239, 68, 68, 0.15)" // Red
+      default:
+        return "rgba(100, 100, 100, 0.1)" // Gray
+    }
+  }
 
   // Get progress summary
   const getProgress = useCallback(() => {
