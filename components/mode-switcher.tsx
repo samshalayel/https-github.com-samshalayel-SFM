@@ -4,6 +4,15 @@ import { Briefcase, GitBranch, GraduationCap, ChevronLeft, ChevronRight, AlertTr
 import type { Mode, Stage } from "@/lib/use-mode"
 import { STAGES } from "@/lib/use-mode"
 
+interface StagesProgress {
+  total: number
+  completed: number
+  inProgress: number
+  notStarted: number
+  blocked: number
+  percentage: number
+}
+
 interface ModeSwitcherProps {
   mode: Mode
   currentStage: Stage
@@ -13,6 +22,8 @@ interface ModeSwitcherProps {
   onPrevStage: () => void
   isDarkMode?: boolean
   isSandbox?: boolean
+  projectId?: string | null
+  stagesProgress?: StagesProgress
 }
 
 const modeConfig = {
@@ -53,6 +64,8 @@ export default function ModeSwitcher({
   onPrevStage,
   isDarkMode = true,
   isSandbox = false,
+  projectId,
+  stagesProgress,
 }: ModeSwitcherProps) {
   const stageIndex = STAGES.indexOf(currentStage)
   const canGoBack = stageIndex > 0
@@ -177,6 +190,56 @@ export default function ModeSwitcher({
         `}>
           <GitBranch className="w-4 h-4" />
           <span>Read-only view of full pipeline</span>
+        </div>
+      )}
+
+      {/* Project Progress */}
+      {projectId && stagesProgress && stagesProgress.total > 0 && (
+        <div className={`
+          px-3 py-2 rounded-lg text-sm
+          ${isDarkMode
+            ? "bg-white/5 border border-white/10"
+            : "bg-gray-50 border border-gray-200"
+          }
+        `}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+              Project Progress
+            </span>
+            <span className={`font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+              {stagesProgress.percentage}%
+            </span>
+          </div>
+          <div className={`h-2 rounded-full overflow-hidden ${
+            isDarkMode ? "bg-white/10" : "bg-gray-200"
+          }`}>
+            <div 
+              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300"
+              style={{ width: `${stagesProgress.percentage}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-2 text-xs">
+            <span className={isDarkMode ? "text-green-400" : "text-green-600"}>
+              {stagesProgress.completed} completed
+            </span>
+            <span className={isDarkMode ? "text-blue-400" : "text-blue-600"}>
+              {stagesProgress.inProgress} in progress
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* No Project Warning */}
+      {!projectId && mode === "work" && (
+        <div className={`
+          flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+          ${isDarkMode
+            ? "bg-orange-500/10 border border-orange-500/30 text-orange-400"
+            : "bg-orange-50 border border-orange-200 text-orange-700"
+          }
+        `}>
+          <AlertTriangle className="w-4 h-4" />
+          <span>No project selected. Open Settings to create one.</span>
         </div>
       )}
     </div>

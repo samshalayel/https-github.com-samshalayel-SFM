@@ -71,6 +71,7 @@ import ScopeNode from "./nodes/scope-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
+import { useProjectStages, type StageCode } from "@/lib/use-project-stages"
 import ModeSwitcher from "./mode-switcher"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
@@ -180,6 +181,19 @@ function WorkflowBuilderInner() {
     showAllStages,
   } = useMode("work", "S0")
 
+  // Project stages hook
+  const {
+    stages: projectStages,
+    currentStage: projectCurrentStage,
+    isLoading: isLoadingStages,
+    saveStageData,
+    getStage,
+    setProjectCurrentStage,
+    getAllStagesData,
+    getProgress,
+    loadStages,
+  } = useProjectStages(currentProjectId)
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
     if (savedTheme) {
@@ -214,6 +228,81 @@ function WorkflowBuilderInner() {
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = "/auth/login"
+  }
+
+  // Load stage data when project or stage changes
+  useEffect(() => {
+    if (currentProjectId && projectCurrentStage && mode === "work") {
+      const stage = getStage(projectCurrentStage as StageCode)
+      if (stage) {
+        setNodes(stage.nodes_data || [])
+        setEdges(stage.edges_data || [])
+        if (stage.evidence_data && Object.keys(stage.evidence_data).length > 0) {
+          setEvidence(Object.values(stage.evidence_data) as Evidence[])
+        }
+        // Sync the UI stage with project stage
+        setCurrentStage(projectCurrentStage as Stage)
+      }
+    }
+  }, [currentProjectId, projectCurrentStage, projectStages, mode])
+
+  // Load all stages data for Pipeline view
+  useEffect(() => {
+    if (currentProjectId && mode === "pipeline") {
+      const { nodes: allNodes, edges: allEdges } = getAllStagesData()
+      setNodes(allNodes)
+      setEdges(allEdges)
+    }
+  }, [currentProjectId, mode, projectStages])
+
+  // Save current stage data
+  const handleSaveStage = async () => {
+    if (!currentProjectId) {
+      toast({
+        title: "No project selected",
+        description: "Please select or create a project first in Settings.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const stageCode = currentStage as StageCode
+    const evidenceData = evidence.reduce((acc, e) => ({ ...acc, [e.id]: e }), {})
+    
+    const success = await saveStageData(stageCode, nodes, edges, evidenceData)
+    
+    if (success) {
+      toast({
+        title: "Stage saved",
+        description: `${stageCode} data saved successfully.`,
+      })
+      setLastSavedState(JSON.stringify({ nodes, edges, evidence }))
+      setHasUnsavedChanges(false)
+    } else {
+      toast({
+        title: "Save failed",
+        description: "Could not save stage data. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Handle stage change with auto-save
+  const handleStageChange = async (newStage: Stage) => {
+    // Save current stage before switching
+    if (currentProjectId && hasUnsavedChanges) {
+      const stageCode = currentStage as StageCode
+      const evidenceData = evidence.reduce((acc, e) => ({ ...acc, [e.id]: e }), {})
+      await saveStageData(stageCode, nodes, edges, evidenceData)
+    }
+
+    // Update project current stage
+    if (currentProjectId) {
+      await setProjectCurrentStage(newStage as StageCode)
+    }
+
+    // Load new stage data
+    setCurrentStage(newStage)
   }
 
   const loadSeesawTemplate = () => {
@@ -1584,6 +1673,25 @@ const exportWorkflow = () => {
               Load
             </Button>
 
+            {/* Save Stage - quick save to project */}
+            {currentProjectId && (
+              <Button
+                onClick={handleSaveStage}
+                size="sm"
+                variant="outline"
+                disabled={!hasUnsavedChanges}
+                className={`rounded-lg px-3 py-2 transition-all font-medium ${
+                  isDarkMode
+                    ? "bg-transparent hover:bg-green-500/10 text-green-500 border-green-500/50 hover:border-green-500 disabled:opacity-40"
+                    : "bg-transparent hover:bg-green-500/10 text-green-600 border-green-500 disabled:opacity-40"
+                }`}
+              >
+                <Save className="h-4 w-4 mr-1.5" />
+                Save Stage
+              </Button>
+            )}
+
+            {/* Save Snapshot - save to snapshots */}
             <Button
               onClick={handleOpenSave}
               size="sm"
@@ -1595,7 +1703,7 @@ const exportWorkflow = () => {
               }`}
             >
               <Save className="h-4 w-4 mr-1.5" />
-              Save
+              Snapshot
             </Button>
 
             <Button
@@ -1716,11 +1824,13 @@ const exportWorkflow = () => {
             mode={mode}
             currentStage={currentStage}
             onModeChange={setMode}
-            onStageChange={setCurrentStage}
-            onNextStage={nextStage}
-            onPrevStage={prevStage}
+            onStageChange={handleStageChange}
+            onNextStage={() => handleStageChange(nextStage() || currentStage)}
+            onPrevStage={() => handleStageChange(prevStage() || currentStage)}
             isDarkMode={isDarkMode}
             isSandbox={isSandbox}
+            projectId={currentProjectId}
+            stagesProgress={getProgress()}
           />
         </div>
 

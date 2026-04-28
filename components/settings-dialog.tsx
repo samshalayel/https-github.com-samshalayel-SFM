@@ -210,6 +210,8 @@ export default function SettingsDialog({
         user_id: user.id,
       }
 
+      let savedProjectId = selectedProjectId
+
       if (selectedProjectId) {
         // Update existing project
         const { error } = await supabase
@@ -228,6 +230,7 @@ export default function SettingsDialog({
 
         if (error) throw error
         if (data) {
+          savedProjectId = data.id
           setSelectedProjectId(data.id)
         }
       }
@@ -239,7 +242,7 @@ export default function SettingsDialog({
       }))
 
       // Notify parent of project change
-      onProjectChange?.(selectedProjectId, settings.projectName)
+      onProjectChange?.(savedProjectId, settings.projectName)
 
       await loadProjects()
       setActiveTab("projects")
@@ -429,11 +432,14 @@ export default function SettingsDialog({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {project.company_logo_url ? (
+                          {project.company_logo_url && !project.company_logo_url.startsWith("blob:") ? (
                             <img 
                               src={project.company_logo_url} 
                               alt="Logo" 
                               className="h-10 w-10 rounded-lg object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none"
+                              }}
                             />
                           ) : (
                             <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
@@ -552,11 +558,14 @@ export default function SettingsDialog({
                   Company Logo
                 </Label>
                 <div className="flex items-center gap-4">
-                  {settings.logoUrl && (
+                  {settings.logoUrl && !settings.logoUrl.startsWith("blob:") && (
                     <img 
                       src={settings.logoUrl} 
                       alt="Logo preview" 
                       className="h-12 w-12 rounded-lg object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none"
+                      }}
                     />
                   )}
                   <label
