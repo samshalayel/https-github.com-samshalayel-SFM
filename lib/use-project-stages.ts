@@ -45,7 +45,6 @@ export function useProjectStages(projectId: string | null) {
 
   // Load all stages for a project
   const loadStages = useCallback(async () => {
-    console.log("[v0] loadStages called with projectId:", projectId)
     if (!projectId) {
       setStages([])
       return
@@ -61,13 +60,10 @@ export function useProjectStages(projectId: string | null) {
         .eq("project_id", projectId)
         .order("stage_code", { ascending: true })
 
-      console.log("[v0] loadStages result:", { data, error: fetchError })
-
       if (fetchError) throw fetchError
 
       // If no stages exist, create them
       if (!data || data.length === 0) {
-        console.log("[v0] No stages found, creating them...")
         const stagesToCreate = stageOrder.map(code => ({
           project_id: projectId,
           stage_code: code,
@@ -83,9 +79,8 @@ export function useProjectStages(projectId: string | null) {
           .select()
 
         if (createError) {
-          console.error("[v0] Error creating stages:", createError)
+          console.error("Error creating stages:", createError)
         } else {
-          console.log("[v0] Stages created:", createdStages)
           setStages(createdStages || [])
         }
       } else {
@@ -127,18 +122,13 @@ export function useProjectStages(projectId: string | null) {
     edges: Edge[],
     evidence?: Record<string, any>
   ) => {
-    console.log("[v0] saveStageData called:", { projectId, stageCode, nodesCount: nodes.length })
-    if (!projectId) {
-      console.log("[v0] No projectId, returning false")
-      return false
-    }
+    if (!projectId) return false
 
     try {
       const stage = getStage(stageCode)
-      console.log("[v0] Found stage:", stage)
       if (!stage) {
-        console.log("[v0] Stage not found, checking all stages:", stages)
-        // Try to create the stage if it doesn't exist
+        // Stage not found, reload stages and try again
+        await loadStages()
         return false
       }
 

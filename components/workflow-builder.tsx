@@ -232,6 +232,35 @@ function WorkflowBuilderInner() {
     window.location.href = "/auth/login"
   }
 
+  // Auto-load the most recent project for the user on mount
+  useEffect(() => {
+    const loadLatestProject = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+
+      // Get the most recently updated project
+      const { data: projects, error } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+
+      if (!error && projects && projects.length > 0) {
+        const latestProject = projects[0]
+        setCurrentProjectId(latestProject.id)
+        setCurrentProjectName(latestProject.name)
+      }
+    }
+
+    // Only load if no project is currently selected
+    if (!currentProjectId) {
+      loadLatestProject()
+    }
+  }, [])
+
   // Load stage data when project or stage changes
   useEffect(() => {
     if (currentProjectId && projectCurrentStage && mode === "work") {
@@ -1686,10 +1715,7 @@ const exportWorkflow = () => {
 
             {/* Save Stage - quick save to project */}
             <Button
-              onClick={() => {
-                console.log("[v0] Save Stage clicked, currentProjectId:", currentProjectId)
-                handleSaveStage()
-              }}
+              onClick={handleSaveStage}
               size="sm"
               variant="outline"
               className={`rounded-lg px-3 py-2 transition-all font-medium ${
