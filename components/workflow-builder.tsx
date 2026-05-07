@@ -235,10 +235,15 @@ function WorkflowBuilderInner() {
   // Auto-load the most recent project for the user on mount
   useEffect(() => {
     const loadLatestProject = async () => {
+      console.log("[v0] loadLatestProject called")
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
-      if (!user) return
+      console.log("[v0] loadLatestProject user:", user?.id)
+      if (!user) {
+        console.log("[v0] No user found, skipping project load")
+        return
+      }
 
       // Get the most recently updated project
       const { data: projects, error } = await supabase
@@ -248,14 +253,20 @@ function WorkflowBuilderInner() {
         .order("updated_at", { ascending: false })
         .limit(1)
 
+      console.log("[v0] loadLatestProject result:", { projects, error })
+
       if (!error && projects && projects.length > 0) {
         const latestProject = projects[0]
+        console.log("[v0] Setting current project:", latestProject.name)
         setCurrentProjectId(latestProject.id)
         setCurrentProjectName(latestProject.name)
+      } else {
+        console.log("[v0] No projects found for user")
       }
     }
 
     // Only load if no project is currently selected
+    console.log("[v0] Auto-load effect, currentProjectId:", currentProjectId)
     if (!currentProjectId) {
       loadLatestProject()
     }
