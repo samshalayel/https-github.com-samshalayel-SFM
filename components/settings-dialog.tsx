@@ -88,15 +88,10 @@ export default function SettingsDialog({
   }, [selectedProjectId])
 
   const loadProjects = async () => {
-    console.log("[v0] loadProjects called")
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      console.log("[v0] loadProjects user:", user?.id)
-      if (!user) {
-        console.log("[v0] No user found in loadProjects")
-        return
-      }
+      if (!user) return
 
       const { data, error } = await supabase
         .from("projects")
@@ -104,12 +99,10 @@ export default function SettingsDialog({
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
 
-      console.log("[v0] loadProjects result:", { data, error })
-
       if (error) throw error
       setProjects(data || [])
     } catch (error) {
-      console.error("[v0] Error loading projects:", error)
+      console.error("Error loading projects:", error)
     } finally {
       setIsLoading(false)
     }
