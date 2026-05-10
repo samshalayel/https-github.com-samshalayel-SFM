@@ -226,65 +226,81 @@ export function useProjectStages(projectId: string | null) {
   }, [projectId, supabase])
 
   // Get all nodes and edges combined (for Pipeline view) with stage groups
-  const getAllStagesData = useCallback((collapsed: boolean = true) => {
+  // expandedStages is a Set of stage codes that are expanded
+  const getAllStagesData = useCallback((expandedStages: Set<string> = new Set()) => {
     const allNodes: Node[] = []
     const allEdges: Edge[] = []
-    const stageSpacing = 400 // Horizontal spacing between stages
-    const groupWidth = 350
-    const groupHeight = 300
+    const collapsedWidth = 320
+    const expandedWidth = 380
+    const collapsedHeight = 100
+    const baseExpandedHeight = 150
+
+    // Calculate positions - expanded stages take more vertical space
+    let currentY = 50
 
     stageOrder.forEach((stageCode, index) => {
       const stage = stages.find(s => s.stage_code === stageCode)
       const stageNodes = stage?.nodes_data || []
       const stageEdges = stage?.edges_data || []
-      const xOffset = index * stageSpacing
-      const yOffset = 50
+      const isExpanded = expandedStages.has(stageCode)
+      const xOffset = index * 400
+      
+      // Calculate height based on content
+      const nodeHeight = isExpanded && stageNodes.length > 0 
+        ? Math.max(baseExpandedHeight, 100 + stageNodes.length * 70) 
+        : collapsedHeight
 
       // Create a parent group node for each stage
       const groupNodeId = `stage-group-${stageCode}`
       const groupNode: Node = {
         id: groupNodeId,
         type: "pipeline-stage",
-        position: { x: xOffset, y: yOffset },
+        position: { x: xOffset, y: 50 },
         data: {
           label: `${stageCode} - ${stageLabels[stageCode]}`,
           status: stage?.status || "not_started",
           nodeCount: stageNodes.length,
-          isCollapsed: collapsed,
+          isCollapsed: !isExpanded,
           stageCode: stageCode,
         },
         style: {
-          width: groupWidth,
-          height: collapsed ? 100 : groupHeight,
+          width: isExpanded ? expandedWidth : collapsedWidth,
+          height: nodeHeight,
         },
       }
       allNodes.push(groupNode)
 
-      // If not collapsed, add child nodes positioned relative to group
-      if (!collapsed && stageNodes.length > 0) {
+      // If expanded, add child nodes inside the stage
+      if (isExpanded && stageNodes.length > 0) {
         stageNodes.forEach((node, nodeIndex) => {
           const childNode: Node = {
             ...node,
-            id: `${stageCode}-${node.id}`, // Prefix to avoid ID conflicts
+            id: `${stageCode}-${node.id}`,
             position: {
-              x: 20,
-              y: 60 + nodeIndex * 80,
+              x: 15,
+              y: 80 + nodeIndex * 65,
             },
             parentNode: groupNodeId,
             extent: "parent" as const,
             draggable: false,
+            style: {
+              ...node.style,
+              width: expandedWidth - 30,
+              minHeight: 55,
+            },
             data: {
               ...node.data,
-              isCollapsed: true, // Collapse individual nodes in pipeline view
+              isCollapsed: true,
+              isPipelineView: true,
             },
           }
           allNodes.push(childNode)
         })
 
-        // Update group height based on node count
+        // Update group height based on actual content
         groupNode.style = {
           ...groupNode.style,
-          height: Math.max(groupHeight, 80 + stageNodes.length * 80),
+          height: Math.max(baseExpandedHeight, 90 + stageNodes.length * 65),
         }
       }
 
