@@ -276,13 +276,51 @@ function WorkflowBuilderInner() {
     }
   }, [currentProjectId, projectCurrentStage, projectStages, mode])
 
-  // Load all stages data for Pipeline view (collapsed by default)
-  const [pipelineCollapsed, setPipelineCollapsed] = useState(true)
+  // Load all stages data for Pipeline view (track expanded stages individually)
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
+  
+  // Toggle a single stage expand/collapse
+  const toggleStageExpand = useCallback((stageCode: string) => {
+    setExpandedStages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(stageCode)) {
+        newSet.delete(stageCode)
+      } else {
+        newSet.add(stageCode)
+      }
+      return newSet
+    })
+  }, [])
+
+  // Expand/collapse all stages
+  const toggleAllStages = useCallback((expand: boolean) => {
+    if (expand) {
+      setExpandedStages(new Set(["PD", "S0", "S1", "S2", "S3", "S4", "S5", "S6"]))
+    } else {
+      setExpandedStages(new Set())
+    }
+  }, [])
   
   useEffect(() => {
     if (currentProjectId && mode === "pipeline") {
-      const { nodes: allNodes, edges: allEdges } = getAllStagesData(pipelineCollapsed)
-      setNodes(allNodes)
+      // Pass toggleStageExpand callback to nodes
+      const { nodes: allNodes, edges: allEdges } = getAllStagesData(expandedStages)
+      
+      // Add the toggle callback to each pipeline-stage node
+      const nodesWithCallback = allNodes.map(node => {
+        if (node.type === "pipeline-stage") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              onToggleCollapse: toggleStageExpand,
+            }
+          }
+        }
+        return node
+      })
+      
+      setNodes(nodesWithCallback)
       setEdges(allEdges)
       
       // Auto-fit view after loading pipeline
@@ -292,7 +330,7 @@ function WorkflowBuilderInner() {
         }
       }, 100)
     }
-  }, [currentProjectId, mode, projectStages, pipelineCollapsed])
+  }, [currentProjectId, mode, projectStages, expandedStages, toggleStageExpand])
 
   // Save current stage data
   const handleSaveStage = async () => {
@@ -1945,14 +1983,14 @@ const exportWorkflow = () => {
               
               {/* Toggle collapse button */}
               <button
-                onClick={() => setPipelineCollapsed(!pipelineCollapsed)}
+                onClick={() => toggleAllStages(expandedStages.size === 0)}
                 className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isDarkMode
                     ? "bg-white/10 hover:bg-white/20 text-white"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-900"
                 }`}
               >
-                {pipelineCollapsed ? "Expand All Stages" : "Collapse All Stages"}
+                {expandedStages.size === 0 ? "Expand All Stages" : "Collapse All Stages"}
               </button>
             </div>
 
