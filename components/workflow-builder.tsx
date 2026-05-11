@@ -303,32 +303,46 @@ function WorkflowBuilderInner() {
   
   useEffect(() => {
     if (currentProjectId && mode === "pipeline") {
-      // Pass toggleStageExpand callback to nodes
-      const { nodes: allNodes, edges: allEdges } = getAllStagesData(expandedStages)
+      console.log("[v0] Pipeline mode activated, projectStages:", projectStages?.length)
       
-      // Add the toggle callback to each pipeline-stage node
-      const nodesWithCallback = allNodes.map(node => {
-        if (node.type === "pipeline-stage") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              onToggleCollapse: toggleStageExpand,
+      try {
+        // Pass toggleStageExpand callback to nodes
+        const result = getAllStagesData(expandedStages)
+        console.log("[v0] getAllStagesData result:", result)
+        
+        if (!result || !result.nodes) {
+          console.log("[v0] No result from getAllStagesData")
+          return
+        }
+        
+        const { nodes: allNodes, edges: allEdges } = result
+        
+        // Add the toggle callback to each pipeline-stage node
+        const nodesWithCallback = allNodes.map(node => {
+          if (node.type === "pipeline-stage") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                onToggleCollapse: toggleStageExpand,
+              }
             }
           }
-        }
-        return node
-      })
-      
-      setNodes(nodesWithCallback)
-      setEdges(allEdges)
-      
-      // Auto-fit view after loading pipeline
-      setTimeout(() => {
-        if (reactFlowInstance) {
-          reactFlowInstance.fitView({ padding: 0.2 })
-        }
-      }, 100)
+          return node
+        })
+        
+        setNodes(nodesWithCallback)
+        setEdges(allEdges)
+        
+        // Auto-fit view after loading pipeline
+        setTimeout(() => {
+          if (reactFlowInstance) {
+            reactFlowInstance.fitView({ padding: 0.2 })
+          }
+        }, 100)
+      } catch (error) {
+        console.error("[v0] Error in pipeline useEffect:", error)
+      }
     }
   }, [currentProjectId, mode, projectStages, expandedStages, toggleStageExpand])
 
