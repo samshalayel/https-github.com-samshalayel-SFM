@@ -302,16 +302,12 @@ function WorkflowBuilderInner() {
   }, [])
   
   useEffect(() => {
-    if (currentProjectId && mode === "pipeline") {
-      console.log("[v0] Pipeline mode activated, projectStages:", projectStages?.length)
-      
+    if (mode === "pipeline") {
       try {
-        // Pass toggleStageExpand callback to nodes
+        // Get all stages data - this works even without a project
         const result = getAllStagesData(expandedStages)
-        console.log("[v0] getAllStagesData result:", result)
         
         if (!result || !result.nodes) {
-          console.log("[v0] No result from getAllStagesData")
           return
         }
         
@@ -341,10 +337,10 @@ function WorkflowBuilderInner() {
           }
         }, 100)
       } catch (error) {
-        console.error("[v0] Error in pipeline useEffect:", error)
+        console.error("Error in pipeline useEffect:", error)
       }
     }
-  }, [currentProjectId, mode, projectStages, expandedStages, toggleStageExpand])
+  }, [mode, projectStages, expandedStages, toggleStageExpand, getAllStagesData])
 
   // Save current stage data
   const handleSaveStage = async () => {

@@ -317,8 +317,8 @@ export function useProjectStages(projectId: string | null) {
         })
       }
 
-      // Add internal edges if not collapsed
-      if (!collapsed) {
+      // Add internal edges if expanded
+      if (isExpanded) {
         stageEdges.forEach(edge => {
           allEdges.push({
             ...edge,
