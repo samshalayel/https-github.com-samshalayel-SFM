@@ -6,11 +6,10 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // Auth callback is handled by its own route handler
-  // We need to pass through but ensure cookies are available
+  // Auth callback needs all cookies passed through for PKCE flow
   const isAuthCallback = request.nextUrl.pathname === "/auth/callback"
   if (isAuthCallback) {
-    // Copy all cookies to the response so they're available for the callback route
+    // Pass all existing cookies to the response so the route handler can access them
     request.cookies.getAll().forEach(cookie => {
       supabaseResponse.cookies.set(cookie.name, cookie.value)
     })
