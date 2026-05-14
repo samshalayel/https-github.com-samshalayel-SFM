@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import { type NextRequest } from "next/server"
-import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -40,27 +39,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
   }
 
+  // Create response first
+  const response = NextResponse.redirect(redirectUrl)
+
+  // Create Supabase client that reads from request cookies and writes to response cookies
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
+      },
+    },
+  })
+
   // Handle magic link tokens (from API key login)
   if (tokenHash && type) {
     try {
-      const response = NextResponse.redirect(redirectUrl)
-      const cookieStore = await cookies()
-      
-      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-              response.cookies.set(name, value, options)
-            })
-          },
-        },
-      })
-
-      // Verify the token hash for magic link
       const { error: verifyError } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: type as "magiclink" | "email",
@@ -81,23 +79,6 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
-      const response = NextResponse.redirect(redirectUrl)
-      const cookieStore = await cookies()
-      
-      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-              response.cookies.set(name, value, options)
-            })
-          },
-        },
-      })
-
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
       
       if (exchangeError) {
@@ -110,7 +91,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
       }
       
-      // Successful authentication - return response with cookies set
       return response
     } catch (err) {
       console.error("[Auth Callback] Unexpected error:", err)
