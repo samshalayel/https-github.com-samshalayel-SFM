@@ -7,13 +7,9 @@ export async function updateSession(request: NextRequest) {
   });
 
   // Auth callback is handled by its own route handler
-  // We need to pass through but ensure cookies are available
+  // Pass through without modifying cookies - the route handler will manage them
   const isAuthCallback = request.nextUrl.pathname === "/auth/callback"
   if (isAuthCallback) {
-    // Copy all cookies to the response so they're available for the callback route
-    request.cookies.getAll().forEach(cookie => {
-      supabaseResponse.cookies.set(cookie.name, cookie.value)
-    })
     return supabaseResponse;
   }
 

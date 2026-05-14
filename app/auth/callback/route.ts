@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import { type NextRequest } from "next/server"
+import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -11,6 +12,27 @@ export async function GET(request: NextRequest) {
   const errorDescription = searchParams.get("error_description")
   const next = searchParams.get("next") ?? "/"
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[Auth Callback] Supabase not configured")
+    return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`)
+  }
+
+  // Determine redirect URL
+  const forwardedHost = request.headers.get("x-forwarded-host")
+  const isLocalEnv = process.env.NODE_ENV === "development"
+  
+  let redirectUrl: string
+  if (isLocalEnv) {
+    redirectUrl = `${origin}${next}`
+  } else if (forwardedHost) {
+    redirectUrl = `https://${forwardedHost}${next}`
+  } else {
+    redirectUrl = `${origin}${next}`
+  }
+
   // Handle OAuth errors from provider
   if (error) {
     console.error("[Auth Callback] OAuth error:", error, errorDescription)
@@ -20,37 +42,19 @@ export async function GET(request: NextRequest) {
 
   // Handle magic link tokens (from API key login)
   if (tokenHash && type) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("[Auth Callback] Supabase not configured")
-      return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`)
-    }
-
     try {
-      const forwardedHost = request.headers.get("x-forwarded-host")
-      const isLocalEnv = process.env.NODE_ENV === "development"
-      
-      let redirectUrl: string
-      if (isLocalEnv) {
-        redirectUrl = `${origin}${next}`
-      } else if (forwardedHost) {
-        redirectUrl = `https://${forwardedHost}${next}`
-      } else {
-        redirectUrl = `${origin}${next}`
-      }
-      
       const response = NextResponse.redirect(redirectUrl)
+      const cookieStore = await cookies()
       
       const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
           getAll() {
-            return request.cookies.getAll()
+            return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, { ...options, sameSite: "none", secure: true })
+              cookieStore.set(name, value, options)
+              response.cookies.set(name, value, options)
             })
           },
         },
@@ -76,38 +80,19 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("[Auth Callback] Supabase not configured")
-      return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`)
-    }
-
     try {
-      // Create response that we'll return - cookies will be set on this
-      const forwardedHost = request.headers.get("x-forwarded-host")
-      const isLocalEnv = process.env.NODE_ENV === "development"
-      
-      let redirectUrl: string
-      if (isLocalEnv) {
-        redirectUrl = `${origin}${next}`
-      } else if (forwardedHost) {
-        redirectUrl = `https://${forwardedHost}${next}`
-      } else {
-        redirectUrl = `${origin}${next}`
-      }
-      
       const response = NextResponse.redirect(redirectUrl)
+      const cookieStore = await cookies()
       
       const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
           getAll() {
-            return request.cookies.getAll()
+            return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, { ...options, sameSite: "none", secure: true })
+              cookieStore.set(name, value, options)
+              response.cookies.set(name, value, options)
             })
           },
         },
@@ -117,6 +102,10 @@ export async function GET(request: NextRequest) {
       
       if (exchangeError) {
         console.error("[Auth Callback] Code exchange error:", exchangeError.message)
+        // If PKCE error, provide a clearer message
+        if (exchangeError.message.includes("PKCE") || exchangeError.message.includes("code verifier")) {
+          return NextResponse.redirect(`${origin}/auth/login?error=session_expired_please_try_again`)
+        }
         const errorMessage = encodeURIComponent(exchangeError.message || "Failed to authenticate")
         return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
       }
