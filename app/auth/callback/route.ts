@@ -1,3 +1,4 @@
+// Auth callback route - handles OAuth and magic link authentication
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import { type NextRequest } from "next/server"
