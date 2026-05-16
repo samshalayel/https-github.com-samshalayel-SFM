@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { LogOut, Key, ChevronDown, User } from "lucide-react"
+import { LogOut, Key, ChevronDown, User, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import Link from "next/link"
 
 export function UserProfile() {
   const [email, setEmail] = useState<string | null>(null)
-  const [initials, setInitials] = useState("؟")
+  const [initials, setInitials] = useState("?")
   const router = useRouter()
   const supabase = createClient()
 
@@ -38,19 +38,29 @@ export function UserProfile() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 border-border text-foreground hover:bg-muted">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 border-white/20 bg-transparent text-white hover:bg-white/10 rounded-lg"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#f26522] text-white text-xs font-bold">
             {initials}
           </span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronDown className="h-3 w-3 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56" dir="rtl">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="truncate text-sm font-normal text-muted-foreground">{email || "..."}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
+            <LayoutDashboard className="h-4 w-4" />
+            لوحة التحكم
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/dashboard/api-keys" className="flex items-center gap-2 cursor-pointer">
             <Key className="h-4 w-4" />

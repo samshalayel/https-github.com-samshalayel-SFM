@@ -78,6 +78,7 @@ import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode as WorkflowNodeType } from "@/lib/types"
 import SettingsDialog from "./settings-dialog"
 import { createClient } from "@/lib/supabase/client"
+import { UserProfile } from "@/components/user-profile"
 import SaveLoadDialog from "./save-load-dialog"
 import GitHubImportDialog from "./github-import-dialog"
 import EvidenceRepository from "./evidence-repository"
@@ -2079,19 +2080,7 @@ const exportWorkflow = () => {
               {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            <Button
-              onClick={handleLogout}
-              size="sm"
-              variant="outline"
-              className={`rounded-lg px-4 py-2 transition-all font-medium ${
-                isDarkMode
-                  ? "bg-transparent hover:bg-red-500/10 text-red-400 border-red-500/50 hover:border-red-500"
-                  : "bg-transparent hover:bg-red-500/10 text-red-600 border-red-500"
-              }`}
-            >
-              <LogOut className="h-4 w-4 mr-1.5" />
-              Logout
-            </Button>
+
 
             <Button
               onClick={() => setIsSettingsOpen(true)}
@@ -2187,6 +2176,7 @@ const exportWorkflow = () => {
                 Software Factory Model
               </p>
             </div>
+            <UserProfile />
           </div>
         </div>
 

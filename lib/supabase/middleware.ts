@@ -63,7 +63,8 @@ const {
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth/")
   
   // Protected paths that require authentication (exclude root page for demo/preview)
-  const isProtectedPath = request.nextUrl.pathname.startsWith("/builder") ||
+  const isProtectedPath = request.nextUrl.pathname === "/" ||
+    request.nextUrl.pathname.startsWith("/builder") ||
     request.nextUrl.pathname.startsWith("/dashboard")
 
   // If trying to access protected path without user, redirect to login
