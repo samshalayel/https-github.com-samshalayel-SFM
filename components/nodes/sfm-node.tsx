@@ -3,7 +3,7 @@
 import type React from "react"
 import { memo } from "react"
 import { Handle, Position, useReactFlow, type NodeProps } from "reactflow"
-import { Trash2, ChevronDown, ChevronUp, FolderOpen, CheckCircle2, XCircle } from "lucide-react"
+import { Trash2, ChevronDown, ChevronUp, FolderOpen, CheckCircle2, XCircle, Lock } from "lucide-react"
 import SeesawIcon from "../seesaw-icon"
 import EditableDescription from "./editable-description"
 import EditablePointsList from "./editable-points-list"
@@ -126,7 +126,7 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
   return (
     <div
       className={`shadow-lg rounded-2xl border-2 min-w-[260px] max-w-[300px] overflow-hidden hover:shadow-xl transition-all duration-200 group ${
-        completed ? "border-green-400" : colors.border
+        (data as any).locked ? "border-amber-400" : completed ? "border-green-400" : colors.border
       } bg-white`}
     >
       <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} className="w-3 h-3 !bg-blue-600 border-2 border-white" />
@@ -134,7 +134,7 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
       {/* Header */}
       <div
         className={`px-4 py-3 flex items-center justify-between bg-gradient-to-r ${
-          completed ? "from-green-500 to-green-600" : colors.gradient
+          (data as any).locked ? "from-amber-500 to-amber-600" : completed ? "from-green-500 to-green-600" : colors.gradient
         } text-white`}
       >
         <div className="flex items-center gap-2">
@@ -145,7 +145,12 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
           <span className="text-xs font-semibold uppercase tracking-wide">{config.stage}</span>
         </div>
         <div className="flex items-center gap-2">
-          {completed && (
+          {(data as any).locked && (
+            <span className="text-[10px] bg-white/30 text-white px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              <Lock className="h-3 w-3" /> Locked
+            </span>
+          )}
+          {completed && !(data as any).locked && (
             <span className="text-[10px] bg-white/30 text-white px-2 py-0.5 rounded-full font-semibold">
               ✓ Completed
             </span>
@@ -190,33 +195,58 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
         </div>
       </div>
 
-      {/* ── Pass / Fail ── */}
-      <div className="px-3 pb-3 pt-2 border-t border-gray-100">
-        <div className="flex gap-2" onMouseDown={(e) => e.stopPropagation()}>
+      {/* ── Pass / Fail OR Lock Gate ── */}
+      {config.kind === "gate" ? (
+        <div className="px-3 pb-3 pt-2 border-t border-gray-100">
           <button
-            onClick={(e) => { e.stopPropagation(); if (!completed) handleToggleComplete(e) }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
-              completed
-                ? "bg-green-500 text-white border-green-500 shadow-md shadow-green-200"
-                : "bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600 hover:bg-green-50"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              const newLocked = !(data as any).locked
+              setNodes((nodes) =>
+                nodes.map((node) =>
+                  node.id === id ? { ...node, data: { ...node.data, locked: newLocked } } : node
+                )
+              )
+            }}
+            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+              (data as any).locked
+                ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200"
+                : "bg-white text-gray-400 border-gray-200 hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50"
             }`}
           >
-            <CheckCircle2 className="h-4 w-4" />
-            Pass
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); if (completed) handleToggleComplete(e) }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
-              !completed
-                ? "bg-white text-gray-400 border-gray-200 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
-                : "bg-white text-red-400 border-red-200 hover:border-red-500 hover:bg-red-50"
-            }`}
-          >
-            <XCircle className="h-4 w-4" />
-            Fail
+            <Lock className="h-4 w-4" />
+            {(data as any).locked ? "Gate Locked 🔒" : "Lock Gate"}
           </button>
         </div>
-      </div>
+      ) : (
+        <div className="px-3 pb-3 pt-2 border-t border-gray-100">
+          <div className="flex gap-2" onMouseDown={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (!completed) handleToggleComplete(e) }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+                completed
+                  ? "bg-green-500 text-white border-green-500 shadow-md shadow-green-200"
+                  : "bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600 hover:bg-green-50"
+              }`}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Pass
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (completed) handleToggleComplete(e) }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+                !completed
+                  ? "bg-white text-gray-400 border-gray-200 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                  : "bg-white text-red-400 border-red-200 hover:border-red-500 hover:bg-red-50"
+              }`}
+            >
+              <XCircle className="h-4 w-4" />
+              Fail
+            </button>
+          </div>
+        </div>
+      )}
 
       <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="w-3 h-3 !bg-blue-600 border-2 border-white" />
     </div>

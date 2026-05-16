@@ -70,6 +70,7 @@ import GroupNode from "./nodes/group-node"
 import ScopeNode from "./nodes/scope-node"
 import PipelineStageNode from "./nodes/pipeline-stage-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
+import { getNodeConfig } from "@/lib/sfm-node-registry"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
 import { useProjectStages, type StageCode } from "@/lib/use-project-stages"
@@ -193,6 +194,7 @@ function WorkflowBuilderInner() {
     isLoading: isLoadingStages,
     saveStageData,
     getStage,
+    updateStageStatus,
     setProjectCurrentStage,
     getAllStagesData,
     getProgress,
@@ -229,17 +231,19 @@ function WorkflowBuilderInner() {
     }
   }, [nodes, edges, evidence, lastSavedState])
 
-  // Auto-save when any node completed status changes
+  // Auto-save when any node completed/locked status changes
   useEffect(() => {
     if (!currentProjectId || mode !== "work") return
 
-    // Build map of current completed states
+    // Build map of current completed+locked states
     const currentCompleted: Record<string, boolean> = {}
     let hasChange = false
     nodes.forEach(node => {
       const val = !!(node.data as any)?.completed
-      currentCompleted[node.id] = val
-      if (prevCompletedRef.current[node.id] !== val) hasChange = true
+      const lockedVal = !!(node.data as any)?.locked
+      const combined = val || lockedVal
+      currentCompleted[node.id] = combined
+      if (prevCompletedRef.current[node.id] !== combined) hasChange = true
     })
     // Also detect removed nodes
     Object.keys(prevCompletedRef.current).forEach(id => {
@@ -378,6 +382,33 @@ function WorkflowBuilderInner() {
       }
     }
   }, [mode, projectStages, expandedStages, toggleStageExpand, getAllStagesData])
+
+  // Auto-complete stage when all regular nodes are passed
+  useEffect(() => {
+    if (!currentProjectId || mode !== "work" || nodes.length === 0) return
+
+    // Only count non-gate, non-group nodes
+    const regularNodes = nodes.filter(n => {
+      if (!n.type) return false
+      if (n.type === "group" || n.type === "pipeline-stage") return false
+      const cfg = getNodeConfig(n.type)
+      if (cfg?.kind === "gate") return false
+      return true
+    })
+
+    if (regularNodes.length === 0) return
+
+    const allPassed = regularNodes.every(n => !!(n.data as any)?.completed)
+    const stage = getStage(currentStage as StageCode)
+    if (!stage) return
+
+    if (allPassed && stage.status !== "completed") {
+      updateStageStatus(currentStage as StageCode, "completed")
+      toast({ title: "🎉 Stage Completed!", description: "All nodes passed — stage is now complete." })
+    } else if (!allPassed && stage.status === "completed") {
+      updateStageStatus(currentStage as StageCode, "in_progress")
+    }
+  }, [nodes, currentProjectId, mode])
 
   // Save current stage data
   const handleSaveStage = async () => {
