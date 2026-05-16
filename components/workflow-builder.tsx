@@ -464,21 +464,39 @@ function WorkflowBuilderInner() {
     }
   }
 
-  // Handle stage change with auto-save
-  const handleStageChange = async (newStage: Stage) => {
-    // Save current stage before switching
-    if (currentProjectId && hasUnsavedChanges) {
-      const stageCode = currentStage as StageCode
-      const evidenceData = evidence.reduce((acc, e) => ({ ...acc, [e.id]: e }), {})
-      await saveStageData(stageCode, nodes, edges, evidenceData)
-    }
+  // Handle stage change — instant switch from memory, save in background
+  const handleStageChange = (newStage: Stage) => {
+    if (newStage === currentStage) return
 
-    // Update project current stage
+    // Fire save + DB update in background (no await — don't block UI)
     if (currentProjectId) {
-      await setProjectCurrentStage(newStage as StageCode)
+      if (hasUnsavedChanges) {
+        const stageCode = currentStage as StageCode
+        const evidenceData = evidence.reduce((acc: Record<string, any>, e: any) => ({ ...acc, [e.id]: e }), {})
+        saveStageData(stageCode, nodes, edges, evidenceData)
+      }
+      setProjectCurrentStage(newStage as StageCode)
     }
 
-    // Load new stage data
+    // Immediately load new stage from in-memory projectStages
+    const newStageData = projectStages.find(s => s.stage_code === newStage)
+    if (newStageData) {
+      // Update the ref so stage-load effect won't reload again
+      loadedStageKeyRef.current = `${currentProjectId}-${newStage}-work`
+      setNodes(newStageData.nodes_data || [])
+      setEdges(newStageData.edges_data || [])
+      if (newStageData.evidence_data && Object.keys(newStageData.evidence_data).length > 0) {
+        setEvidence(Object.values(newStageData.evidence_data) as Evidence[])
+      } else {
+        setEvidence([])
+      }
+      setHasUnsavedChanges(false)
+      // Fit view after render
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.15, duration: 400 })
+      }, 80)
+    }
+
     setCurrentStage(newStage)
   }
 
