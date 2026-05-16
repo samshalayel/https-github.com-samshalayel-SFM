@@ -2118,7 +2118,16 @@ const exportWorkflow = () => {
       </div>
 
       <button
-        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onClick={() => {
+          setIsSidebarCollapsed(prev => {
+            const next = !prev
+            // Re-center canvas after sidebar animation (300ms transition)
+            setTimeout(() => {
+              reactFlowInstance?.fitView({ padding: 0.15, duration: 300 })
+            }, 350)
+            return next
+          })
+        }}
         className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 backdrop-blur-sm border shadow-lg rounded-r-lg p-2 transition-all duration-300 hover:shadow-xl ${
           isDarkMode
             ? "bg-[#1a1a2e]/90 hover:bg-[#252542] border-white/5 hover:border-[#f26522]/30"
@@ -2258,7 +2267,7 @@ const exportWorkflow = () => {
           </div>
         </div>
 
-        <div className="flex-1 relative h-full w-full" ref={reactFlowWrapper} style={{ minHeight: 'calc(100vh - 64px)' }}>
+        <div className="flex-1 relative h-full w-full transition-all duration-300" ref={reactFlowWrapper} style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div
               className={`absolute top-20 left-20 w-72 h-72 rounded-full blur-3xl ${
