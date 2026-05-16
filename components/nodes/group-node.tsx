@@ -2,17 +2,16 @@
 
 import React, { memo, useState, useEffect } from "react"
 import { NodeResizer, type NodeProps, useReactFlow, Handle, Position } from "reactflow"
-import { FolderOpen, Plus, Minus } from "lucide-react"
+import { FolderOpen, Plus, Minus, ShieldAlert } from "lucide-react"
 
 interface GroupNodeData {
   label: string
   color?: string
   isCollapsed?: boolean
   originalSize?: { width: number; height: number }
-  // Store hidden edge IDs so we can restore them properly
   hiddenEdgeIds?: string[]
-  // Store the child node positions relative to group before collapse
   childPositions?: Record<string, { x: number; y: number }>
+  status?: string
 }
 
 const GROUP_COLORS = [
@@ -262,6 +261,12 @@ const GroupNode: React.FC<NodeProps<GroupNodeData>> = ({ id, data, selected }) =
           <div className="flex items-center gap-2">
             <FolderOpen className={`h-4 w-4 ${colors.text} ${colors.darkText}`} />
             <span className={`text-sm font-semibold ${colors.text} ${colors.darkText}`}>{groupName}</span>
+            {data.status === "Blocked" && (
+              <span className="flex items-center gap-1 text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                <ShieldAlert className="h-3 w-3" />
+                Blocked
+              </span>
+            )}
           </div>
           
           {/* Control Buttons */}
