@@ -386,6 +386,7 @@ function WorkflowBuilderInner() {
   // Auto-complete stage when all regular nodes are passed
   useEffect(() => {
     if (!currentProjectId || mode !== "work" || nodes.length === 0) return
+    if (projectStages.length === 0) return // stages not loaded yet
 
     // Only count non-gate, non-group nodes
     const regularNodes = nodes.filter(n => {
@@ -393,22 +394,27 @@ function WorkflowBuilderInner() {
       if (n.type === "group" || n.type === "pipeline-stage") return false
       const cfg = getNodeConfig(n.type)
       if (cfg?.kind === "gate") return false
+      // fallback: type name contains gate/lock
+      if (!cfg && (n.type.includes("gate") || n.type.includes("-lock-"))) return false
       return true
     })
 
     if (regularNodes.length === 0) return
 
     const allPassed = regularNodes.every(n => !!(n.data as any)?.completed)
-    const stage = getStage(currentStage as StageCode)
+
+    // Find stage directly from projectStages — more reliable than getStage()
+    const stageCode = (projectCurrentStage || currentStage) as StageCode
+    const stage = projectStages.find(s => s.stage_code === stageCode)
     if (!stage) return
 
     if (allPassed && stage.status !== "completed") {
-      updateStageStatus(currentStage as StageCode, "completed")
+      updateStageStatus(stageCode, "completed")
       toast({ title: "🎉 Stage Completed!", description: "All nodes passed — stage is now complete." })
     } else if (!allPassed && stage.status === "completed") {
-      updateStageStatus(currentStage as StageCode, "in_progress")
+      updateStageStatus(stageCode, "in_progress")
     }
-  }, [nodes, currentProjectId, mode])
+  }, [nodes, currentProjectId, mode, projectStages, currentStage, projectCurrentStage])
 
   // Save current stage data
   const handleSaveStage = async () => {
