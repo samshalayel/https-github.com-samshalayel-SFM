@@ -154,6 +154,7 @@ function WorkflowBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const prevCompletedRef = useRef<Record<string, string>>({})
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadedStageKeyRef = useRef<string | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -301,19 +302,23 @@ function WorkflowBuilderInner() {
     }
   }, [])
 
-  // Load stage data when project or stage changes
+  // Load stage data only when project or stage actually changes (not on every DB refresh)
   useEffect(() => {
-    if (currentProjectId && projectCurrentStage && mode === "work") {
-      const stage = getStage(projectCurrentStage as StageCode)
-      if (stage) {
-        setNodes(stage.nodes_data || [])
-        setEdges(stage.edges_data || [])
-        if (stage.evidence_data && Object.keys(stage.evidence_data).length > 0) {
-          setEvidence(Object.values(stage.evidence_data) as Evidence[])
-        }
-        // Sync the UI stage with project stage
-        setCurrentStage(projectCurrentStage as Stage)
+    if (!currentProjectId || !projectCurrentStage || mode !== "work") return
+
+    // Build a key — only reload if the project/stage combination changed
+    const stageKey = `${currentProjectId}-${projectCurrentStage}-${mode}`
+    if (stageKey === loadedStageKeyRef.current) return
+    loadedStageKeyRef.current = stageKey
+
+    const stage = getStage(projectCurrentStage as StageCode)
+    if (stage) {
+      setNodes(stage.nodes_data || [])
+      setEdges(stage.edges_data || [])
+      if (stage.evidence_data && Object.keys(stage.evidence_data).length > 0) {
+        setEvidence(Object.values(stage.evidence_data) as Evidence[])
       }
+      setCurrentStage(projectCurrentStage as Stage)
     }
   }, [currentProjectId, projectCurrentStage, projectStages, mode])
 
