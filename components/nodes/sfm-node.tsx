@@ -190,23 +190,32 @@ function SfmNodeInner({ data, id, nodeType }: SfmNodeProps) {
         </div>
       </div>
 
-      {/* ── Pass / Fail Toggle ── */}
-      <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-        <button
-          onClick={handleToggleComplete}
-          onMouseDown={(e) => e.stopPropagation()}
-          className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all duration-200 border ${
-            completed
-              ? "bg-green-50 text-green-700 border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-              : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-          }`}
-        >
-          {completed ? (
-            <><CheckCircle2 className="h-4 w-4" /> Completed — click to revert</>
-          ) : (
-            <><XCircle className="h-4 w-4" /> Mark as Passed</>
-          )}
-        </button>
+      {/* ── Pass / Fail ── */}
+      <div className="px-3 pb-3 pt-2 border-t border-gray-100">
+        <div className="flex gap-2" onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (!completed) handleToggleComplete(e) }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+              completed
+                ? "bg-green-500 text-white border-green-500 shadow-md shadow-green-200"
+                : "bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600 hover:bg-green-50"
+            }`}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Pass
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (completed) handleToggleComplete(e) }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+              !completed
+                ? "bg-white text-gray-400 border-gray-200 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                : "bg-white text-red-400 border-red-200 hover:border-red-500 hover:bg-red-50"
+            }`}
+          >
+            <XCircle className="h-4 w-4" />
+            Fail
+          </button>
+        </div>
       </div>
 
       <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="w-3 h-3 !bg-blue-600 border-2 border-white" />

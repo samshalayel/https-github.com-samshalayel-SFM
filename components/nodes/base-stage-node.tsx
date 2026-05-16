@@ -207,30 +207,32 @@ export default function BaseStageNode({
         )}
       </div>
 
-      {/* Pass / Fail Toggle */}
-      <div className="px-4 pb-4 pt-1 border-t border-gray-100 mt-1">
-        <button
-          onClick={handleToggleComplete}
-          onMouseDown={(e) => e.stopPropagation()}
-          className={`w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-            completed
-              ? "bg-green-100 text-green-700 border border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-              : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-          }`}
-          title={completed ? "Click to mark as Failed" : "Click to mark as Passed"}
-        >
-          {completed ? (
-            <>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Completed — click to revert
-            </>
-          ) : (
-            <>
-              <XCircle className="h-3.5 w-3.5" />
-              Mark as Passed
-            </>
-          )}
-        </button>
+      {/* ── Pass / Fail ── */}
+      <div className="px-3 pb-3 pt-2 border-t border-gray-100 mt-1">
+        <div className="flex gap-2" onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (!completed) handleToggleComplete(e) }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+              completed
+                ? "bg-green-500 text-white border-green-500 shadow-md shadow-green-200"
+                : "bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600 hover:bg-green-50"
+            }`}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Pass
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (completed) handleToggleComplete(e) }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border-2 transition-all duration-200 ${
+              !completed
+                ? "bg-white text-gray-400 border-gray-200 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                : "bg-white text-red-400 border-red-200 hover:border-red-500 hover:bg-red-50"
+            }`}
+          >
+            <XCircle className="h-4 w-4" />
+            Fail
+          </button>
+        </div>
       </div>
 
       <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-600 border-2 border-white" />
