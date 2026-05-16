@@ -18,6 +18,7 @@ import Link from "next/link"
 export function UserProfile() {
   const [email, setEmail] = useState<string | null>(null)
   const [initials, setInitials] = useState("?")
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -26,6 +27,9 @@ export function UserProfile() {
       if (user?.email) {
         setEmail(user.email)
         setInitials(user.email.slice(0, 2).toUpperCase())
+      }
+      if (user?.app_metadata?.role === "admin") {
+        setIsAdmin(true)
       }
     })
   }, [])
@@ -55,12 +59,14 @@ export function UserProfile() {
           <span className="truncate text-sm font-normal text-muted-foreground">{email || "..."}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
-            <LayoutDashboard className="h-4 w-4" />
-            لوحة التحكم
-          </Link>
-        </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
+              <LayoutDashboard className="h-4 w-4" />
+              لوحة التحكم
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/dashboard/api-keys" className="flex items-center gap-2 cursor-pointer">
             <Key className="h-4 w-4" />
