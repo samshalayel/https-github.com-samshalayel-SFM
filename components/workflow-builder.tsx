@@ -24,12 +24,22 @@ import "reactflow/dist/style.css"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2, Group, Ungroup } from "lucide-react"
+import { Save, Settings, Download, ChevronLeft, ChevronRight, Copy, Sun, Moon, Upload, LogOut, LayoutTemplate, FileText, FilePlus, FileInput, Minimize2, Maximize2, Group, Ungroup, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import NodeLibrary from "./node-library"
 import SfmNodeLibrary from "./sfm-node-library"
 import NodeConfigPanel from "./node-config-panel"
@@ -194,7 +204,14 @@ function WorkflowBuilderInner() {
     getAllStagesData,
     getProgress,
     loadStages,
+    updateStageStatus,
   } = useProjectStages(currentProjectId)
+
+  // Stage completion dialog state
+  const [stageCompletionDialog, setStageCompletionDialog] = useState<{
+    open: boolean
+    action: "pass" | "fail" | null
+  }>({ open: false, action: null })
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sillar-theme")
@@ -390,6 +407,46 @@ function WorkflowBuilderInner() {
 
     // Load new stage data
     setCurrentStage(newStage)
+  }
+
+  // Handle stage completion (Pass/Fail)
+  const handleStageCompletion = async (action: "pass" | "fail") => {
+    if (!currentProjectId) {
+      toast({
+        title: "No project selected",
+        description: "Please select a project first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const stageCode = currentStage as StageCode
+    const newStatus = action === "pass" ? "completed" : "blocked"
+    
+    const success = await updateStageStatus(stageCode, newStatus)
+    
+    if (success) {
+      toast({
+        title: action === "pass" ? "Stage Completed!" : "Stage Blocked",
+        description: action === "pass" 
+          ? `${currentStage} has been marked as completed.`
+          : `${currentStage} has been marked as blocked.`,
+        variant: action === "pass" ? "default" : "destructive",
+      })
+      setStageCompletionDialog({ open: false, action: null })
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update stage status.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Get current stage status
+  const getCurrentStageStatus = () => {
+    const stage = getStage(currentStage as StageCode)
+    return stage?.status || "not_started"
   }
 
   const loadSeesawTemplate = () => {
