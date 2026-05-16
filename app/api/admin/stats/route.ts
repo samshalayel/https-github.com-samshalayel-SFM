@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -6,107 +7,78 @@ export async function GET() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json(
-      { error: "Missing Supabase configuration" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Missing Supabase configuration" }, { status: 500 })
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  // Verify current user session
+  const userSupabase = await createClient()
+  const { data: { user: sessionUser }, error: authError } = await userSupabase.auth.getUser()
+  if (authError || !sessionUser) {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 })
+  }
+
+  const supabase = createServiceClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
   try {
-    // Get all users from auth
-    const {
-      data: { users },
-      error: usersError,
-    } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+    if (usersError) return NextResponse.json({ error: usersError.message }, { status: 500 })
 
-    if (usersError) {
-      return NextResponse.json({ error: usersError.message }, { status: 500 })
+    // Bootstrap: if no admins exist, make current user admin
+    const admins = (users || []).filter(u => u.app_metadata?.role === "admin")
+    let currentUserMeta = users?.find(u => u.id === sessionUser.id)?.app_metadata || {}
+
+    if (admins.length === 0) {
+      currentUserMeta = { ...currentUserMeta, role: "admin", is_active: true }
+      await supabase.auth.admin.updateUserById(sessionUser.id, { app_metadata: currentUserMeta })
     }
 
-    // Get all snapshots grouped by user
-    const { data: snapshots, error: snapshotsError } = await supabase
-      .from("snapshots")
-      .select("user_id, id")
-
-    if (snapshotsError) {
-      return NextResponse.json(
-        { error: snapshotsError.message },
-        { status: 500 }
-      )
+    // Admin check
+    if (currentUserMeta?.role !== "admin") {
+      return NextResponse.json({ error: "غير مصرح — يجب أن تكون مديراً" }, { status: 403 })
     }
 
-    // Get all tasks grouped by user
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("user_id, id")
+    // Fetch data
+    const [{ data: snapshots }, { data: tasks }, { data: columns }] = await Promise.all([
+      supabase.from("snapshots").select("user_id, id"),
+      supabase.from("tasks").select("user_id, id"),
+      supabase.from("columns").select("user_id, id"),
+    ])
 
-    if (tasksError) {
-      return NextResponse.json({ error: tasksError.message }, { status: 500 })
-    }
+    const count = (arr: any[] | null, userId: string) =>
+      (arr || []).filter(r => r.user_id === userId).length
 
-    // Get all columns grouped by user
-    const { data: columns, error: columnsError } = await supabase
-      .from("columns")
-      .select("user_id, id")
-
-    if (columnsError) {
-      return NextResponse.json(
-        { error: columnsError.message },
-        { status: 500 }
-      )
-    }
-
-    // Count per user
-    const snapshotCounts: Record<string, number> = {}
-    snapshots?.forEach((s) => {
-      snapshotCounts[s.user_id] = (snapshotCounts[s.user_id] || 0) + 1
+    const userStats = (users || []).map(user => {
+      const s = count(snapshots, user.id)
+      const t = count(tasks, user.id)
+      const col = count(columns, user.id)
+      return {
+        id: user.id,
+        email: user.email || "N/A",
+        created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at ?? null,
+        snapshots_count: s,
+        tasks_count: t,
+        columns_count: col,
+        total_items: s + t + col,
+        role: (user.app_metadata?.role as string) || "developer",
+        is_active: user.app_metadata?.is_active !== false,
+      }
     })
 
-    const taskCounts: Record<string, number> = {}
-    tasks?.forEach((t) => {
-      taskCounts[t.user_id] = (taskCounts[t.user_id] || 0) + 1
-    })
-
-    const columnCounts: Record<string, number> = {}
-    columns?.forEach((c) => {
-      columnCounts[c.user_id] = (columnCounts[c.user_id] || 0) + 1
-    })
-
-    // Build user stats
-    const userStats = (users || []).map((user) => ({
-      id: user.id,
-      email: user.email || "N/A",
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
-      snapshots_count: snapshotCounts[user.id] || 0,
-      tasks_count: taskCounts[user.id] || 0,
-      columns_count: columnCounts[user.id] || 0,
-      total_items:
-        (snapshotCounts[user.id] || 0) +
-        (taskCounts[user.id] || 0) +
-        (columnCounts[user.id] || 0),
-    }))
-
-    // Sort by total items descending
     userStats.sort((a, b) => b.total_items - a.total_items)
 
-    // Summary totals
-    const summary = {
-      total_users: users?.length || 0,
-      total_snapshots: snapshots?.length || 0,
-      total_tasks: tasks?.length || 0,
-      total_columns: columns?.length || 0,
-    }
-
-    return NextResponse.json({ summary, userStats })
+    return NextResponse.json({
+      summary: {
+        total_users: users?.length || 0,
+        total_snapshots: snapshots?.length || 0,
+        total_tasks: tasks?.length || 0,
+        total_columns: columns?.length || 0,
+      },
+      userStats,
+    })
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Unknown error" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error?.message || "Unknown error" }, { status: 500 })
   }
 }
