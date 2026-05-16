@@ -319,8 +319,12 @@ function WorkflowBuilderInner() {
         setEvidence(Object.values(stage.evidence_data) as Evidence[])
       }
       setCurrentStage(projectCurrentStage as Stage)
+      // Fit view after nodes render so they appear centered
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.15, duration: 400 })
+      }, 100)
     }
-  }, [currentProjectId, projectCurrentStage, projectStages, mode])
+  }, [currentProjectId, projectCurrentStage, projectStages, mode, reactFlowInstance])
 
   // Load all stages data for Pipeline view (track expanded stages individually)
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
