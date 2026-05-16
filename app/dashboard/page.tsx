@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Users, FileArchive, ListTodo, Columns3, RefreshCw, ArrowRight, Loader2, Key } from "lucide-react"
+import { Users, FileArchive, ListTodo, Columns3, RefreshCw, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { UsersTable } from "@/components/dashboard/users-table"
+import { UserProfile } from "@/components/user-profile"
 import Link from "next/link"
 
 interface UserStat {
@@ -68,14 +69,10 @@ export default function DashboardPage() {
               <h1 className="text-lg font-bold text-foreground">لوحة التحكم</h1>
               <p className="text-xs text-muted-foreground">استهلاك المستخدمين والملفات المحفوظة</p>
             </div>
+            {/* User Profile — next to logo */}
+            <UserProfile />
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/api-keys">
-              <Button variant="outline" size="sm" className="gap-2 border-border text-foreground hover:bg-muted">
-                <Key className="h-4 w-4" />
-                مفاتيح API
-              </Button>
-            </Link>
             <Button
               variant="outline"
               size="sm"
@@ -113,7 +110,6 @@ export default function DashboardPage() {
           </div>
         ) : data ? (
           <div className="space-y-8">
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="إجمالي المستخدمين"
@@ -140,8 +136,6 @@ export default function DashboardPage() {
                 accentClass="bg-[hsl(var(--chart-3))]/10 text-[hsl(var(--chart-3))]"
               />
             </div>
-
-            {/* Users Table */}
             <div>
               <h2 className="text-base font-semibold text-foreground mb-4">تفاصيل استهلاك المستخدمين</h2>
               <UsersTable users={data.userStats} />
