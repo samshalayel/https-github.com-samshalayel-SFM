@@ -232,6 +232,13 @@ function WorkflowBuilderInner() {
     }
   }, [nodes, edges, evidence, lastSavedState])
 
+  // Reset stage load ref when switching back to Work mode (forces stage reload)
+  useEffect(() => {
+    if (mode === "work") {
+      loadedStageKeyRef.current = null
+    }
+  }, [mode])
+
   // Auto-save when any node completed/locked status changes
   useEffect(() => {
     if (!currentProjectId || mode !== "work") return

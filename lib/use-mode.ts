@@ -21,19 +21,19 @@ export function useMode(initialMode: Mode = "work", initialStage: Stage = "S0"):
   const [mode, setMode] = useState<Mode>(initialMode)
   const [currentStage, setCurrentStage] = useState<Stage>(initialStage)
 
-  const nextStage = useCallback(() => {
-    setCurrentStage((prev) => {
-      const idx = STAGES.indexOf(prev)
-      return idx < STAGES.length - 1 ? STAGES[idx + 1] : prev
-    })
-  }, [])
+  const nextStage = useCallback((): Stage => {
+    const idx = STAGES.indexOf(currentStage)
+    const newStage = idx < STAGES.length - 1 ? STAGES[idx + 1] : currentStage
+    setCurrentStage(newStage)
+    return newStage
+  }, [currentStage])
 
-  const prevStage = useCallback(() => {
-    setCurrentStage((prev) => {
-      const idx = STAGES.indexOf(prev)
-      return idx > 0 ? STAGES[idx - 1] : prev
-    })
-  }, [])
+  const prevStage = useCallback((): Stage => {
+    const idx = STAGES.indexOf(currentStage)
+    const newStage = idx > 0 ? STAGES[idx - 1] : currentStage
+    setCurrentStage(newStage)
+    return newStage
+  }, [currentStage])
 
   // Derived states based on mode
   const isEditable = useMemo(() => mode !== "pipeline", [mode])
