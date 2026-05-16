@@ -152,7 +152,7 @@ const edgeTypes: EdgeTypes = {
 
 function WorkflowBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const prevCompletedRef = useRef<Record<string, boolean>>({})
+  const prevCompletedRef = useRef<Record<string, string>>({})
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
@@ -235,23 +235,23 @@ function WorkflowBuilderInner() {
   useEffect(() => {
     if (!currentProjectId || mode !== "work") return
 
-    // Build map of current completed+locked states
-    const currentCompleted: Record<string, boolean> = {}
+    // Track completed and locked as a combined string key per node
+    const currentMap: Record<string, string> = {}
     let hasChange = false
     nodes.forEach(node => {
-      const val = !!(node.data as any)?.completed
-      const lockedVal = !!(node.data as any)?.locked
-      const combined = val || lockedVal
-      currentCompleted[node.id] = combined
-      if (prevCompletedRef.current[node.id] !== combined) hasChange = true
+      const completed = !!(node.data as any)?.completed
+      const locked = !!(node.data as any)?.locked
+      const key = `${completed}|${locked}`
+      currentMap[node.id] = key
+      if (prevCompletedRef.current[node.id] !== key) hasChange = true
     })
-    // Also detect removed nodes
+    // Detect removed nodes
     Object.keys(prevCompletedRef.current).forEach(id => {
-      if (!currentCompleted[id]) hasChange = true
+      if (!currentMap[id]) hasChange = true
     })
 
     if (!hasChange) return
-    prevCompletedRef.current = currentCompleted
+    prevCompletedRef.current = currentMap
 
     // Debounced save
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
