@@ -151,6 +151,8 @@ const edgeTypes: EdgeTypes = {
 
 function WorkflowBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const prevCompletedRef = useRef<Record<string, boolean>>({})
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -226,6 +228,40 @@ function WorkflowBuilderInner() {
       setHasUnsavedChanges(true)
     }
   }, [nodes, edges, evidence, lastSavedState])
+
+  // Auto-save when any node completed status changes
+  useEffect(() => {
+    if (!currentProjectId || mode !== "work") return
+
+    // Build map of current completed states
+    const currentCompleted: Record<string, boolean> = {}
+    let hasChange = false
+    nodes.forEach(node => {
+      const val = !!(node.data as any)?.completed
+      currentCompleted[node.id] = val
+      if (prevCompletedRef.current[node.id] !== val) hasChange = true
+    })
+    // Also detect removed nodes
+    Object.keys(prevCompletedRef.current).forEach(id => {
+      if (!currentCompleted[id]) hasChange = true
+    })
+
+    if (!hasChange) return
+    prevCompletedRef.current = currentCompleted
+
+    // Debounced save
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(async () => {
+      const stageCode = currentStage as StageCode
+      const evidenceData = evidence.reduce((acc: Record<string, any>, e: any) => ({ ...acc, [e.id]: e }), {})
+      const success = await saveStageData(stageCode, nodes, edges, evidenceData)
+      if (success) {
+        setLastSavedState(JSON.stringify({ nodes, edges, evidence }))
+        setHasUnsavedChanges(false)
+        toast({ title: "✓ Saved", description: "Node status updated." })
+      }
+    }, 800)
+  }, [nodes])
 
   const handleLogout = async () => {
     const supabase = createClient()
