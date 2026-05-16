@@ -81,21 +81,21 @@ export default function BaseStageNode({
     setNodes((nodes) => {
       const thisNode = nodes.find((n) => n.id === id)
       const parentId = thisNode?.parentId
-      return nodes.map((node) => {
-        if (node.id === id) {
-          return { ...node, data: { ...node.data, completed: newCompleted } }
-        }
-        if (parentId && node.id === parentId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              status: newCompleted ? "Blocked" : undefined,
-            },
-          }
-        }
-        return node
-      })
+
+      const updated = nodes.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, completed: newCompleted } } : node
+      )
+
+      if (!parentId) return updated
+
+      const children = updated.filter(n => n.parentId === parentId)
+      const anyFailed = children.some(n => !(n.data as any)?.completed)
+
+      return updated.map((node) =>
+        node.id === parentId
+          ? { ...node, data: { ...node.data, status: anyFailed ? "Blocked" : undefined } }
+          : node
+      )
     })
   }
 
