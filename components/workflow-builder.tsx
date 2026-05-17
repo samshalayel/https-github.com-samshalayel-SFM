@@ -281,31 +281,44 @@ function WorkflowBuilderInner() {
     window.location.href = "/auth/login"
   }
 
-  // Auto-load the most recent project for the user on mount
+  // Auto-load project: ?project=<name> من URL أو آخر مشروع
   useEffect(() => {
-    const loadLatestProject = async () => {
+    const loadProject = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      
       if (!user) return
 
-      // Get the most recently updated project
+      const urlParams = new URLSearchParams(window.location.search)
+      const projectParam = urlParams.get("project")
+
       const { data: projects, error } = await supabase
         .from("projects")
         .select("id, name")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
-        .limit(1)
 
-      if (!error && projects && projects.length > 0) {
-        const latestProject = projects[0]
-        setCurrentProjectId(latestProject.id)
-        setCurrentProjectName(latestProject.name)
+      if (error || !projects || projects.length === 0) return
+
+      // إذا في ?project= في URL — ابحث بالاسم
+      if (projectParam) {
+        const q = projectParam.toLowerCase()
+        const match = projects.find((p: any) =>
+          p.name.toLowerCase().includes(q) || p.name.toLowerCase() === q
+        )
+        if (match) {
+          setCurrentProjectId(match.id)
+          setCurrentProjectName(match.name)
+          return
+        }
       }
+
+      // افتراضياً: آخر مشروع
+      setCurrentProjectId(projects[0].id)
+      setCurrentProjectName(projects[0].name)
     }
 
     if (!currentProjectId) {
-      loadLatestProject()
+      loadProject()
     }
   }, [])
 

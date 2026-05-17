@@ -159,13 +159,20 @@ export async function POST(request: NextRequest) {
 
       const contents = await response.json()
       
-      // Filter to only show JSON files and directories
-      const files = Array.isArray(contents) 
+      // Show directories and JSON files only
+      const files = Array.isArray(contents)
         ? contents
-            .filter((item: any) => item.type === "file" && item.name.endsWith(".json"))
+            .filter((item: any) => item.type === "dir" || (item.type === "file" && item.name.endsWith(".json")))
+            .sort((a: any, b: any) => {
+              // Directories first
+              if (a.type === "dir" && b.type !== "dir") return -1
+              if (a.type !== "dir" && b.type === "dir") return 1
+              return a.name.localeCompare(b.name)
+            })
             .map((item: any) => ({
               name: item.name,
               path: item.path,
+              type: item.type,
               sha: item.sha,
               size: item.size,
             }))
