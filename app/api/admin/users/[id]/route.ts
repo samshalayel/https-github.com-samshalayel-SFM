@@ -1,46 +1,38 @@
-import { createClient as createServiceClient } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import { requireAdmin, findUserById, updateAppMetadata, setPassword, deleteUser } from "@/lib/auth/users"
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: "غير مصرح" }, { status: 403 })
 
-  // Verify session
-  const userSupabase = await createClient()
-  const { data: { user: sessionUser }, error: authError } = await userSupabase.auth.getUser()
-  if (authError || !sessionUser) {
-    return NextResponse.json({ error: "غير مصرح" }, { status: 401 })
+  const { id } = await params
+  const target = await findUserById(id)
+  if (!target) return NextResponse.json({ error: "المستخدم غير موجود" }, { status: 404 })
+
+  const { role, is_active, password } = await request.json().catch(() => ({}))
+  if (id === admin.id && (role === "developer" || is_active === false)) {
+    return NextResponse.json({ error: "ما بتقدر تشيل صلاحيات حسابك أو توقفه" }, { status: 400 })
   }
 
-  const supabase = createServiceClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const meta: Record<string, any> = { ...(target.app_metadata || {}) }
+  if (role !== undefined) meta.role = role === "admin" ? "admin" : "developer"
+  if (is_active !== undefined) meta.is_active = Boolean(is_active)
+  await updateAppMetadata(id, meta)
 
-  // Check caller is admin
-  const { data: { user: callerData } } = await supabase.auth.admin.getUserById(sessionUser.id)
-  if (callerData?.app_metadata?.role !== "admin") {
-    return NextResponse.json({ error: "غير مصرح" }, { status: 403 })
+  if (password !== undefined) {
+    if (String(password).length < 8) {
+      return NextResponse.json({ error: "كلمة المرور لازم تكون 8 أحرف على الأقل" }, { status: 400 })
+    }
+    await setPassword(id, String(password))
   }
+  return NextResponse.json({ success: true })
+}
 
-  const { id } = params
-  const body = await request.json()
-  const { role, is_active } = body
-
-  // Get target user current metadata
-  const { data: { user: targetUser } } = await supabase.auth.admin.getUserById(id)
-  const existingMeta = targetUser?.app_metadata || {}
-
-  const newMeta: Record<string, any> = { ...existingMeta }
-  if (role !== undefined) newMeta.role = role
-  if (is_active !== undefined) newMeta.is_active = is_active
-
-  const { error } = await supabase.auth.admin.updateUserById(id, { app_metadata: newMeta })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: "غير مصرح" }, { status: 403 })
+  const { id } = await params
+  if (id === admin.id) return NextResponse.json({ error: "ما بتقدر تحذف حسابك" }, { status: 400 })
+  await deleteUser(id)
   return NextResponse.json({ success: true })
 }

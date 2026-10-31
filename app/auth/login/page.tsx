@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 
@@ -171,13 +170,7 @@ export default function LoginPage() {
                 </Button>
               </div>
               <div className="mt-6 text-center text-sm text-gray-400">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href="/auth/sign-up"
-                  className="text-[#f26522] transition-colors hover:text-[#ff8c42]"
-                >
-                  Sign up
-                </Link>
+                Need an account? Ask your admin to add you.
               </div>
             </form>
           </div>

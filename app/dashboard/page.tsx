@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { UsersTable } from "@/components/dashboard/users-table"
 import { UserProfile } from "@/components/user-profile"
+import { AddUserForm } from "@/components/dashboard/add-user-form"
 import Link from "next/link"
 
 interface UserStat {
@@ -123,7 +124,8 @@ export default function DashboardPage() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-foreground mb-4">إدارة المستخدمين</h2>
-              <UsersTable users={data.userStats} />
+              <AddUserForm onCreated={fetchData} />
+              <UsersTable key={data.userStats.map(u => u.id).join(",")} users={data.userStats} />
             </div>
           </div>
         ) : null}

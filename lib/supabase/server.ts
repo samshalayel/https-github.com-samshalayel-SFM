@@ -1,56 +1,35 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Server client (route handlers / server components). Same API shape as the
+// old Supabase server client, but runs SQL directly, scoped to the signed-in user.
+import "server-only"
+import { QueryBuilder } from "@/lib/db/query-builder"
+import { executeQuery, type Scope } from "@/lib/db/execute"
+import { currentUser, publicUser } from "@/lib/auth/users"
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return true
 }
 
-/**
- * Especially important if using Fluid compute: Don't put this client in a
- * global variable. Always create a new client within each function when using
- * it.
- */
 export async function createClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // Return a mock client that won't make network requests
-    return {
-      auth: {
-        signOut: async () => ({ error: null }),
-        getUser: async () => ({ data: { user: null }, error: null }),
-        signInWithPassword: async () => ({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
-        signUp: async () => ({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      },
-      from: () => ({
-        select: () => ({ data: [], error: null }),
-        insert: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        update: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        delete: () => ({ data: null, error: { message: "Supabase not configured" } }),
-      }),
-    } as any;
-  }
-
-  const cookieStore = await cookies();
-
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        } catch {
-          // The "setAll" method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
+  const user = await currentUser()
+  const scope: Scope | null = user ? { userId: user.id } : null
+  return {
+    auth: {
+      async getUser() {
+        return user
+          ? { data: { user: publicUser(user) }, error: null }
+          : { data: { user: null }, error: { message: "Not authenticated" } }
       },
     },
-  });
+    from: (table: string) =>
+      new QueryBuilder(table, (spec) =>
+        scope ? executeQuery(spec, scope) : Promise.resolve({ data: null, error: { message: "Not authenticated" } }),
+      ),
+  } as any
+}
+
+/** Bypasses per-user scoping. Only for trusted server code (API-key login, admin). */
+export function createAdminClient() {
+  return {
+    from: (table: string) => new QueryBuilder(table, (spec) => executeQuery(spec, { admin: true })),
+  } as any
 }

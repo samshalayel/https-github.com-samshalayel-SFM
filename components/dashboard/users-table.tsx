@@ -56,6 +56,35 @@ export function UsersTable({ users: initialUsers }: UsersTableProps) {
     }
   }
 
+  const resetPassword = async (id: string, email: string) => {
+    const password = window.prompt(`كلمة مرور جديدة لـ ${email} (8 أحرف على الأقل):`)
+    if (!password) return
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      })
+      const body = await res.json().catch(() => ({}))
+      window.alert(res.ok ? "تم تغيير كلمة المرور" : body.error || "فشل تغيير كلمة المرور")
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const removeUser = async (id: string, email: string) => {
+    if (!window.confirm(`حذف ${email} نهائياً مع كل مشاريعه؟`)) return
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" })
+      if (res.ok) setUsers(prev => prev.filter(u => u.id !== id))
+      else window.alert((await res.json().catch(() => ({}))).error || "فشل الحذف")
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"))
     else { setSortKey(key); setSortDir("desc") }
@@ -210,6 +239,24 @@ export function UsersTable({ users: initialUsers }: UsersTableProps) {
                     ) : (
                       <><Unlock className="h-3 w-3" /> تفعيل</>
                     )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs ms-1"
+                    onClick={() => resetPassword(user.id, user.email)}
+                    disabled={loadingId === user.id}
+                  >
+                    كلمة مرور
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                    onClick={() => removeUser(user.id, user.email)}
+                    disabled={loadingId === user.id}
+                  >
+                    حذف
                   </Button>
                 </td>
               </tr>

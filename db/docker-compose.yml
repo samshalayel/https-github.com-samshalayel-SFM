@@ -1,0 +1,19 @@
+# Postgres for the Seesaw board. Run on the server:
+#   cd db && POSTGRES_PASSWORD=... docker compose up -d
+# schema.sql is applied automatically on the first start.
+services:
+  seesaw-db:
+    image: postgres:16-alpine
+    container_name: seesaw-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: seesaw
+      POSTGRES_DB: seesaw
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"   # reachable from the server only
+    volumes:
+      - seesaw-db-data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+volumes:
+  seesaw-db-data:

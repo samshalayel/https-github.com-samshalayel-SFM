@@ -1,104 +1,56 @@
-// Auth callback route - handles OAuth and magic link authentication
-import { createServerClient } from "@supabase/ssr"
-import { NextResponse } from "next/server"
-import { type NextRequest } from "next/server"
+// Step 2 of Google sign-in: Google sends the user back here with a code.
+// Only emails that an admin already added can sign in (no open sign-up).
+import { NextRequest, NextResponse } from "next/server"
+import { publicOrigin } from "@/lib/auth/origin"
+import { findUserByEmail, isActive, startSession } from "@/lib/auth/users"
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const origin = publicOrigin(request)
+  const fail = (msg: string) => {
+    const res = NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`)
+    res.cookies.delete("sfm_oauth_state")
+    return res
+  }
+
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
-  const tokenHash = searchParams.get("token_hash")
-  const type = searchParams.get("type")
-  const error = searchParams.get("error")
-  const errorDescription = searchParams.get("error_description")
-  const next = searchParams.get("next") ?? "/"
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("[Auth Callback] Supabase not configured")
-    return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`)
+  const state = searchParams.get("state")
+  if (searchParams.get("error")) return fail("تم إلغاء الدخول عبر Google")
+  if (!code || !state || state !== request.cookies.get("sfm_oauth_state")?.value) {
+    return fail("انتهت صلاحية محاولة الدخول، جرّب مرة ثانية")
   }
 
-  // Determine redirect URL
-  const forwardedHost = request.headers.get("x-forwarded-host")
-  const isLocalEnv = process.env.NODE_ENV === "development"
-  
-  let redirectUrl: string
-  if (isLocalEnv) {
-    redirectUrl = `${origin}${next}`
-  } else if (forwardedHost) {
-    redirectUrl = `https://${forwardedHost}${next}`
-  } else {
-    redirectUrl = `${origin}${next}`
+  try {
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: `${origin}/auth/callback`,
+        grant_type: "authorization_code",
+      }),
+    })
+    const tokens = await tokenRes.json()
+    if (!tokenRes.ok || !tokens.access_token) return fail("فشل التحقق من Google")
+
+    const infoRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    })
+    const info = await infoRes.json()
+    if (!info?.email || info.email_verified === false) return fail("إيميل Google غير مؤكد")
+
+    const user = await findUserByEmail(info.email)
+    if (!user) return fail(`الحساب ${info.email} غير مضاف، اطلب من المدير يضيفك`)
+    if (!isActive(user)) return fail("الحساب موقوف، تواصل مع المدير")
+
+    await startSession(user)
+    const res = NextResponse.redirect(`${origin}/`)
+    res.cookies.delete("sfm_oauth_state")
+    return res
+  } catch (e) {
+    console.error("[auth/callback]", e)
+    return fail("صار خطأ أثناء الدخول عبر Google")
   }
-
-  // Handle OAuth errors from provider
-  if (error) {
-    console.error("[Auth Callback] OAuth error:", error, errorDescription)
-    const errorMessage = encodeURIComponent(errorDescription || error || "Authentication failed")
-    return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
-  }
-
-  // Create response first
-  const response = NextResponse.redirect(redirectUrl)
-
-  // Create Supabase client that reads from request cookies and writes to response cookies
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options)
-        })
-      },
-    },
-  })
-
-  // Handle magic link tokens (from API key login)
-  if (tokenHash && type) {
-    try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: type as "magiclink" | "email",
-      })
-      
-      if (verifyError) {
-        console.error("[Auth Callback] Magic link verification error:", verifyError.message)
-        const errorMessage = encodeURIComponent(verifyError.message || "Failed to authenticate")
-        return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
-      }
-      
-      return response
-    } catch (err) {
-      console.error("[Auth Callback] Unexpected error:", err)
-      return NextResponse.redirect(`${origin}/auth/login?error=unexpected_error`)
-    }
-  }
-
-  if (code) {
-    try {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-      
-      if (exchangeError) {
-        console.error("[Auth Callback] Code exchange error:", exchangeError.message)
-        // If PKCE error, provide a clearer message
-        if (exchangeError.message.includes("PKCE") || exchangeError.message.includes("code verifier")) {
-          return NextResponse.redirect(`${origin}/auth/login?error=session_expired_please_try_again`)
-        }
-        const errorMessage = encodeURIComponent(exchangeError.message || "Failed to authenticate")
-        return NextResponse.redirect(`${origin}/auth/login?error=${errorMessage}`)
-      }
-      
-      return response
-    } catch (err) {
-      console.error("[Auth Callback] Unexpected error:", err)
-      return NextResponse.redirect(`${origin}/auth/login?error=unexpected_error`)
-    }
-  }
-
-  // No code provided - return to login
-  return NextResponse.redirect(`${origin}/auth/login?error=no_code_provided`)
 }
