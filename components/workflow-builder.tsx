@@ -70,7 +70,7 @@ import GroupNode from "./nodes/group-node"
 import ScopeNode from "./nodes/scope-node"
 import PipelineStageNode from "./nodes/pipeline-stage-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
-import { getNodeConfig } from "@/lib/sfm-node-registry"
+import { getNodeConfig, resolveNodeType } from "@/lib/sfm-node-registry"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
 import { useProjectStages, type StageCode } from "@/lib/use-project-stages"
@@ -1802,7 +1802,8 @@ const exportWorkflow = () => {
             return
           }
 
-          setNodes(workflow.nodes || [])
+          // Normalize short/alias node types (e.g. "s4-structure") to registered ones
+          setNodes((workflow.nodes || []).map((n: any) => ({ ...n, type: resolveNodeType(n.type) })))
           setEdges(workflow.edges || [])
           if (workflow.evidence && Array.isArray(workflow.evidence)) {
             setEvidence(workflow.evidence)

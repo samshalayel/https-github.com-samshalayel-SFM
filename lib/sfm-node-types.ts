@@ -1,5 +1,5 @@
 import type { NodeTypes } from "reactflow"
-import { sfmNodeRegistry } from "./sfm-node-registry"
+import { sfmNodeRegistry, NODE_TYPE_ALIASES } from "./sfm-node-registry"
 import { createSfmNode } from "@/components/nodes/sfm-node"
 import { createSfmGateNode } from "@/components/nodes/sfm-gate-node"
 
@@ -16,6 +16,12 @@ export function generateSfmNodeTypes(): NodeTypes {
     } else {
       nodeTypes[nodeType] = createSfmNode(nodeType)
     }
+  }
+
+  // Aliases: short names that generators tend to produce (often copied from
+  // node ids like "s4-structure-core"). Each alias renders as its real type.
+  for (const [alias, real] of Object.entries(NODE_TYPE_ALIASES)) {
+    if (!nodeTypes[alias] && nodeTypes[real]) nodeTypes[alias] = nodeTypes[real]
   }
 
   return nodeTypes

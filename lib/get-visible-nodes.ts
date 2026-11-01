@@ -1,6 +1,6 @@
 import type { Node } from "reactflow"
 import type { Mode, Stage } from "./use-mode"
-import { sfmNodeRegistry } from "./sfm-node-registry"
+import { sfmNodeRegistry, resolveNodeType } from "./sfm-node-registry"
 
 // Map stages to their allowed node types
 // These are the nodes that can appear in each stage
@@ -134,7 +134,7 @@ export function getVisibleNodes(
       const allowedTypes = getNodeTypesForStage(currentStage)
       return nodes.filter((node) => {
         // Check if node type is in allowed types
-        if (allowedTypes.includes(node.type || "")) return true
+        if (allowedTypes.includes(node.type || "") || allowedTypes.includes(resolveNodeType(node.type) || "")) return true
         // Also check if node has stage data matching current stage
         const nodeConfig = sfmNodeRegistry[node.type || ""]
         if (nodeConfig && nodeConfig.stage === currentStage) return true

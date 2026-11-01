@@ -791,8 +791,52 @@ export const sfmNodeRegistry: Record<string, SfmNodeConfig> = {
 }
 
 // Helper function to get node config
+const EXPLICIT_ALIASES: Record<string, string> = {
+  // PD
+  "pd-summary": "pd-summary-node",
+  "pd-pain": "pd-pain-points-node",
+  // S1
+  "s1-insight": "s1-product-insight-node",
+  "s1-personas": "s1-actors-node",
+  // S2
+  "s2-data": "s2-data-domains-node",
+  // S3
+  "s3-data": "s3-data-model-node",
+  "s3-tasks": "s3-task-plan-node",
+  "s3-task": "s3-task-plan-node",
+  "gate-slices": "gate-slice",
+  // S4
+  "s4-structure": "s4-code-structure-node",
+  "gate-build": "gate-code",
+  // S5
+  "s5-unit": "s5-unit-test-node",
+  "s5-integration": "s5-integration-test-node",
+  "s5-bugs": "s5-bug-node",
+  "s5-bug": "s5-bug-node",
+  "s5-cross-slice": "s5-integration-test-node",
+  // S6
+  "s6-checklist": "s6-deploy-checklist-node",
+}
+
+/** alias -> registered type. Also every "x-node" type is reachable as "x". */
+export const NODE_TYPE_ALIASES: Record<string, string> = (() => {
+  const map: Record<string, string> = {}
+  for (const t of Object.keys(sfmNodeRegistry)) {
+    if (t.endsWith("-node")) map[t.slice(0, -5)] = t
+  }
+  for (const [a, r] of Object.entries(EXPLICIT_ALIASES)) {
+    if (sfmNodeRegistry[r] && !sfmNodeRegistry[a]) map[a] = r
+  }
+  return map
+})()
+
+/** Registered type for a possibly-aliased type (unchanged if unknown). */
+export function resolveNodeType(type?: string): string | undefined {
+  return type && NODE_TYPE_ALIASES[type] ? NODE_TYPE_ALIASES[type] : type
+}
+
 export function getNodeConfig(nodeType: string): SfmNodeConfig | undefined {
-  return sfmNodeRegistry[nodeType]
+  return sfmNodeRegistry[nodeType] ?? sfmNodeRegistry[resolveNodeType(nodeType) || ""]
 }
 
 // Helper to get all nodes for a stage
