@@ -267,6 +267,18 @@ export const sfmNodeRegistry: Record<string, SfmNodeConfig> = {
     defaultAiPercent: 25,
     tooltip: "What we still need to discover",
   },
+  "gate-discovery": {
+    title: "Discovery Gate",
+    stage: "PD",
+    color: "red",
+    kind: "gate",
+    icon: Shield,
+    description: "The human confirms the story is complete before S0.",
+    defaultHumanPercent: 100,
+    defaultAiPercent: 0,
+    decisionAuthority: "Human Only",
+    tooltip: "Blocks S0 until the human approves the PD package",
+  },
 
   // ============================================
   // S0 - Problem Lock Stage Nodes
@@ -795,6 +807,7 @@ const EXPLICIT_ALIASES: Record<string, string> = {
   // PD
   "pd-summary": "pd-summary-node",
   "pd-pain": "pd-pain-points-node",
+  "pd-gate": "gate-discovery",
   // S1
   "s1-insight": "s1-product-insight-node",
   "s1-personas": "s1-actors-node",
@@ -868,4 +881,39 @@ export const stageColors: Record<SfmStage, SfmNodeColor> = {
 // Get all registered node types (for ReactFlow nodeTypes mapping)
 export function getAllNodeTypes(): string[] {
   return Object.keys(sfmNodeRegistry)
+}
+
+
+/**
+ * يجهّز nodes ملف مستورد (من سيسو أو ملف أو GitHub) للعرض:
+ * - أنواع camelCase مثل pdSummary → pd-summary → النوع المسجّل (pd-summary-node)
+ * - data.title → data.label إن لم يوجد label
+ * - inScope / outScope → points (داخل/خارج النطاق) إن لم توجد points
+ * - إن كانت كل العقد في عمود واحد متلاصق (توليد آلي) تُرتّب في شبكة 3 أعمدة
+ */
+export function normalizeImportedNodes(nodes: any[]): any[] {
+  const kebab = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+  const out = (nodes || []).map((n: any) => {
+    let type = resolveNodeType(n.type)
+    if (type && !sfmNodeRegistry[type] && /[A-Z]/.test(type)) type = resolveNodeType(kebab(type))
+    const data = { ...(n.data || {}) }
+    if (!data.label && data.title) data.label = data.title
+    if (!data.points && (Array.isArray(data.inScope) || Array.isArray(data.outScope))) {
+      data.points = [
+        ...(data.inScope || []).map((x: string) => `✅ داخل النطاق: ${x}`),
+        ...(data.outScope || []).map((x: string) => `⛔ خارج النطاق: ${x}`),
+      ]
+    }
+    return { ...n, type, data }
+  })
+  const top = out.filter((n) => !n.parentId && n.position)
+  const xs = new Set(top.map((n) => n.position.x))
+  // عمود واحد متلاصق (فراغ أقل من 300px) = ترتيب آلي من مولّد، لا ترتيب حفظه إنسان
+  const ys = top.map((n) => n.position.y).sort((p, q) => p - q)
+  const tight = ys.every((y, i) => i === 0 || y - ys[i - 1] < 300)
+  if (top.length > 3 && xs.size === 1 && tight) {
+    const COLS = 3, W = 400, H = 560
+    top.forEach((n, i) => { n.position = { x: (i % COLS) * W, y: Math.floor(i / COLS) * H } })
+  }
+  return out
 }

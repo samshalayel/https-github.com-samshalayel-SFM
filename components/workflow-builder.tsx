@@ -70,7 +70,7 @@ import GroupNode from "./nodes/group-node"
 import ScopeNode from "./nodes/scope-node"
 import PipelineStageNode from "./nodes/pipeline-stage-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
-import { getNodeConfig, resolveNodeType } from "@/lib/sfm-node-registry"
+import { getNodeConfig, resolveNodeType, normalizeImportedNodes } from "@/lib/sfm-node-registry"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
 import { useProjectStages, type StageCode } from "@/lib/use-project-stages"
@@ -1459,7 +1459,8 @@ function WorkflowBuilderInner() {
 
   const handleLoadWorkflow = (workflow: { nodes: any[]; edges: any[]; name?: string }) => {
     // Process nodes to ensure collapsed groups have their children hidden
-    const processedNodes = workflow.nodes.map(node => {
+    const imported = normalizeImportedNodes(workflow.nodes)
+    const processedNodes = imported.map(node => {
       // Check if this node's parent group is collapsed
       if (node.parentId) {
         const parentGroup = workflow.nodes.find(n => n.id === node.parentId)
@@ -1803,7 +1804,7 @@ const exportWorkflow = () => {
           }
 
           // Normalize short/alias node types (e.g. "s4-structure") to registered ones
-          setNodes((workflow.nodes || []).map((n: any) => ({ ...n, type: resolveNodeType(n.type) })))
+          setNodes(normalizeImportedNodes(workflow.nodes || []))
           setEdges(workflow.edges || [])
           if (workflow.evidence && Array.isArray(workflow.evidence)) {
             setEvidence(workflow.evidence)
@@ -1860,7 +1861,7 @@ const exportWorkflow = () => {
           })
           return
         }
-        setNodes(workflow.nodes.map((n: any) => ({ ...n, type: resolveNodeType(n.type) })))
+        setNodes(normalizeImportedNodes(workflow.nodes))
         setEdges(workflow.edges || [])
         if (Array.isArray(workflow.evidence)) setEvidence(workflow.evidence)
         setCurrentProjectName(null)
