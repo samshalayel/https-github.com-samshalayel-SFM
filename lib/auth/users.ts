@@ -79,10 +79,16 @@ export function sessionFor(u: DbUser): SessionUser {
 }
 
 /** Issue the session cookie for this user (call from a route handler). */
-export async function startSession(u: DbUser) {
+export async function startSession(u: DbUser, opts: { embedded?: boolean } = {}) {
   await markSignedIn(u.id)
   const token = await signSession(sessionFor(u))
-  ;(await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions)
+  // داخل iframe لموقع آخر (سيسو) الكوكي العادي (SameSite=Lax) لا يُرسل — نستخدم كوكي
+  // مقسّم (Partitioned/CHIPS): يعمل فقط داخل ذلك الـ iframe ولا يغيّر جلسة الموقع المباشر.
+  ;(await cookies()).set(
+    SESSION_COOKIE,
+    token,
+    opts.embedded ? { ...sessionCookieOptions, sameSite: "none", secure: true, partitioned: true } : sessionCookieOptions,
+  )
 }
 
 export async function endSession() {

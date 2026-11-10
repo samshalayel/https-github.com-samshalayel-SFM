@@ -28,7 +28,11 @@ function ApiLoginContent() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ key }),
+          body: JSON.stringify({
+            key,
+            next: searchParams.get("next") || "/",
+            embedded: typeof window !== "undefined" && window.self !== window.top,
+          }),
         })
 
         const data = await response.json()

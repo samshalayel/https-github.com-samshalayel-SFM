@@ -1834,6 +1834,52 @@ const exportWorkflow = () => {
     input.click()
   }
 
+  // ── فتح ملف من سيسو: /?import=<رابط مؤقت موقّع لملف JSON> ─────────────────
+  // ينتظر جاهزية اللوحة (reactFlowInstance) ويُطبَّق مرة واحدة، ثم يُحذف الباراميتر من العنوان.
+  const importedFromUrlRef = useRef(false)
+  useEffect(() => {
+    if (importedFromUrlRef.current || !reactFlowInstance) return
+    const src = new URLSearchParams(window.location.search).get("import")
+    if (!src || !/^https:\/\//i.test(src)) return
+    importedFromUrlRef.current = true
+    ;(async () => {
+      try {
+        const res = await fetch(src, { cache: "no-store" })
+        const body = await res.text()
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`
+          try { msg = JSON.parse(body).error || msg } catch {}
+          throw new Error(msg)
+        }
+        const workflow = JSON.parse(body)
+        if (!workflow?.nodes || !Array.isArray(workflow.nodes)) {
+          toast({
+            title: "الملف ليس workflow",
+            description: "الملف لا يحتوي nodes — البوابة تفتح ملفات الـ workflow فقط",
+            variant: "destructive",
+          })
+          return
+        }
+        setNodes(workflow.nodes.map((n: any) => ({ ...n, type: resolveNodeType(n.type) })))
+        setEdges(workflow.edges || [])
+        if (Array.isArray(workflow.evidence)) setEvidence(workflow.evidence)
+        setCurrentProjectName(null)
+        setHasUnsavedChanges(true)
+        toast({
+          title: "تم فتح الملف من سيسو",
+          description: `${workflow.nodes.length} nodes · ${workflow.edges?.length || 0} connections`,
+        })
+        setTimeout(() => reactFlowInstance?.fitView({ padding: 0.2 }), 150)
+      } catch (e: any) {
+        toast({ title: "تعذّر فتح الملف", description: e?.message || "خطأ غير معروف", variant: "destructive" })
+      } finally {
+        const url = new URL(window.location.href)
+        url.searchParams.delete("import")
+        window.history.replaceState(null, "", url.pathname + url.search)
+      }
+    })()
+  }, [reactFlowInstance])
+
   return (
     <div
       className={`flex flex-row h-screen ${

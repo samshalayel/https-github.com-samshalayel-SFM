@@ -8,7 +8,7 @@ const hashApiKey = (key: string) => crypto.createHash("sha256").update(key).dige
 
 export async function POST(request: NextRequest) {
   try {
-    const { key } = await request.json().catch(() => ({}))
+    const { key, embedded, next } = await request.json().catch(() => ({}))
     if (!key || typeof key !== "string") {
       return NextResponse.json({ error: "مفتاح API مطلوب" }, { status: 400 })
     }
@@ -34,11 +34,14 @@ export async function POST(request: NextRequest) {
     if (!isActive(user)) return NextResponse.json({ error: "الحساب موقوف" }, { status: 403 })
 
     await db.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", apiKey.id)
-    await startSession(user)
+    await startSession(user, { embedded: !!embedded })
+
+    // next: مسار داخلي فقط (يبدأ بـ / وليس //) — يمنع التحويل لموقع خارجي
+    const safeNext = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/"
 
     return NextResponse.json({
       success: true,
-      redirectUrl: "/",
+      redirectUrl: safeNext,
       user: { id: user.id, email: user.email },
       message: "تم التحقق بنجاح",
     })

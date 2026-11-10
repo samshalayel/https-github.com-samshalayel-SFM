@@ -5,7 +5,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const user = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
 
-  const isAuthPage = pathname.startsWith("/auth/") && pathname !== "/auth/callback"
+  // api-login يمر دائماً: يعيد الدخول بالمفتاح ثم يحوّل إلى next (مثل /?import=...)
+  const isAuthPage = pathname.startsWith("/auth/") && pathname !== "/auth/callback" && pathname !== "/auth/api-login"
   const isProtected = pathname === "/" || pathname.startsWith("/builder") || pathname.startsWith("/dashboard")
 
   if (isProtected && !user) {
