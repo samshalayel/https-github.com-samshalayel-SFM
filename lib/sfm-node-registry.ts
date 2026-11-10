@@ -917,3 +917,18 @@ export function normalizeImportedNodes(nodes: any[]): any[] {
   }
   return out
 }
+
+
+/** مرحلة الملف المستورد: meta.stage إن وُجدت، وإلا المرحلة الغالبة بين أنواع العقد */
+export function detectImportedStage(workflow: any, nodes: any[]): SfmStage | undefined {
+  const STAGES: SfmStage[] = ["PD", "S0", "S1", "S2", "S3", "S4", "S5", "S6"]
+  const meta = String(workflow?.meta?.stage || workflow?.stage || "").toUpperCase()
+  if ((STAGES as string[]).includes(meta)) return meta as SfmStage
+  const count: Record<string, number> = {}
+  for (const n of nodes || []) {
+    const st = getNodeConfig(n.type)?.stage
+    if (st) count[st] = (count[st] || 0) + 1
+  }
+  const best = Object.entries(count).sort((a, b) => b[1] - a[1])[0]
+  return best ? (best[0] as SfmStage) : undefined
+}
