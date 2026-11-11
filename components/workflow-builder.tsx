@@ -70,7 +70,7 @@ import GroupNode from "./nodes/group-node"
 import ScopeNode from "./nodes/scope-node"
 import PipelineStageNode from "./nodes/pipeline-stage-node"
 import { sfmNodeTypes } from "@/lib/sfm-node-types"
-import { getNodeConfig, resolveNodeType, normalizeImportedNodes, detectImportedStage } from "@/lib/sfm-node-registry"
+import { getNodeConfig, resolveNodeType, normalizeImportedNodes, detectImportedStage, prepareImportedWorkflow } from "@/lib/sfm-node-registry"
 import { useMode, type Mode, type Stage } from "@/lib/use-mode"
 import { getVisibleNodes, getPaletteNodeTypes, isNodeLocked } from "@/lib/get-visible-nodes"
 import { useProjectStages, type StageCode } from "@/lib/use-project-stages"
@@ -1807,11 +1807,11 @@ const exportWorkflow = () => {
           }
 
           // Normalize short/alias node types (e.g. "s4-structure") to registered ones
-          const importedNodes = normalizeImportedNodes(workflow.nodes || [])
-          setNodes(importedNodes)
-          const importedStage = detectImportedStage(workflow, importedNodes)
+          const prepared = prepareImportedWorkflow(workflow)
+          setNodes(prepared.nodes)
+          const importedStage = detectImportedStage(workflow, prepared.nodes)
           if (importedStage) setCurrentStage(importedStage as Stage)
-          setEdges(workflow.edges || [])
+          setEdges(prepared.edges)
           if (workflow.evidence && Array.isArray(workflow.evidence)) {
             setEvidence(workflow.evidence)
           }
@@ -1867,11 +1867,11 @@ const exportWorkflow = () => {
           })
           return
         }
-        const importedNodes = normalizeImportedNodes(workflow.nodes)
-        setNodes(importedNodes)
-        const importedStage = detectImportedStage(workflow, importedNodes)
+        const prepared = prepareImportedWorkflow(workflow)
+        setNodes(prepared.nodes)
+        const importedStage = detectImportedStage(workflow, prepared.nodes)
         if (importedStage) setCurrentStage(importedStage as Stage)
-        setEdges(workflow.edges || [])
+        setEdges(prepared.edges)
         if (Array.isArray(workflow.evidence)) setEvidence(workflow.evidence)
         setCurrentProjectName(null)
         setHasUnsavedChanges(true)
@@ -2525,7 +2525,8 @@ const exportWorkflow = () => {
         isOpen={isGitHubImportOpen}
         onClose={() => setIsGitHubImportOpen(false)}
         onImport={(workflow) => {
-          handleLoadWorkflow(workflow)
+          // ملف من GitHub: نفس تجهيز الاستيراد (ولملفات PD ترتيب وروابط ثابتة)
+          handleLoadWorkflow({ ...workflow, ...prepareImportedWorkflow(workflow) })
           if (workflow.evidence) {
             setEvidence(workflow.evidence)
           }

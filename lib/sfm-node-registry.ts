@@ -938,3 +938,92 @@ export function detectImportedStage(workflow: any, nodes: any[]): SfmStage | und
   const best = Object.entries(count).sort((a, b) => b[1] - a[1])[0]
   return best ? (best[0] as SfmStage) : undefined
 }
+
+// ── PD: روابط وترتيب ثابتان ────────────────────────────────────────────────────
+// ملفات PD المولّدة ترسم روابطها على هواها. عند الاستيراد نستبدلها بشكل واحد مرتب
+// لا تتقاطع خطوطه: القصة ← (الأطراف | الألم | الأهداف) ← (القيود | النطاق | المجهول | المؤشرات) ← البوابة.
+
+const PD_ROWS: string[][] = [
+  ["pd-summary-node"],
+  ["pd-actors-node", "pd-pain-points-node", "pd-goals-node"],
+  ["pd-constraints-node", "pd-scope-node", "pd-unknowns-node", "pd-signals-node"],
+  ["gate-discovery"],
+]
+
+// [من, إلى, اللون, متقطع؟, متحرك؟] — كل رابط بين صفين متجاورين، بترتيب الأعمدة (بلا تقاطع)
+const PD_LINKS: Array<[string, string, string, boolean, boolean]> = [
+  ["pd-summary-node", "pd-actors-node", "#6366f1", false, false],
+  ["pd-summary-node", "pd-pain-points-node", "#dc2626", false, false],
+  ["pd-summary-node", "pd-goals-node", "#16a34a", false, false],
+  ["pd-actors-node", "pd-constraints-node", "#d97706", false, false],
+  ["pd-pain-points-node", "pd-scope-node", "#dc2626", false, false],
+  ["pd-pain-points-node", "pd-unknowns-node", "#64748b", true, false],
+  ["pd-goals-node", "pd-signals-node", "#16a34a", false, false],
+  ["pd-constraints-node", "gate-discovery", "#d97706", false, true],
+  ["pd-scope-node", "gate-discovery", "#7c3aed", false, true],
+  ["pd-unknowns-node", "gate-discovery", "#64748b", false, true],
+  ["pd-signals-node", "gate-discovery", "#0d9488", false, true],
+]
+
+/** تقدير ارتفاع البطاقة قبل رسمها (عرضها ~300px) — لتباعد الصفوف بلا تداخل */
+function estimateCardHeight(n: any): number {
+  const lines = (t: unknown) => Math.max(1, Math.ceil(String(t || "").length / 34))
+  const d = n.data || {}
+  const pts: string[] = Array.isArray(d.points) ? d.points : []
+  return 230 + (d.description ? lines(d.description) * 18 : 0) + pts.reduce((h, p) => h + lines(p) * 17 + 6, 0)
+}
+
+/**
+ * إن كان الملف PD (5 بطاقات PD على الأقل): ترتيب ثابت بالصفوف وروابط ثابتة مرتبة.
+ * غير ذلك: يرجع null فيبقى الملف كما هو. يُستدعى على nodes بعد normalizeImportedNodes.
+ */
+export function standardizePdWorkflow(nodes: any[]): { nodes: any[]; edges: any[] } | null {
+  const byType = new Map<string, any>()
+  for (const n of nodes) if (n.type && !byType.has(n.type)) byType.set(n.type, n)
+  const pdCount = PD_ROWS.flat().filter((t) => byType.has(t)).length
+  if (pdCount < 5) return null
+
+  const COL_W = 360, ROW_GAP = 90
+  const placed = new Set<string>()
+  let y = 0
+  for (const row of PD_ROWS) {
+    const present = row.filter((t) => byType.has(t))
+    if (!present.length) continue
+    const widest = 4 // عرض أعرض صف — يتوسّط الصفوف الأقصر عليه
+    const offset = ((widest - present.length) * COL_W) / 2
+    let rowH = 0
+    present.forEach((t, i) => {
+      const n = byType.get(t)
+      n.position = { x: offset + i * COL_W, y }
+      placed.add(n.id)
+      rowH = Math.max(rowH, estimateCardHeight(n))
+    })
+    y += rowH + ROW_GAP
+  }
+  // بطاقات أخرى غير متوقعة تُوضع تحت البوابة
+  let extraX = 0
+  for (const n of nodes) {
+    if (placed.has(n.id) || n.parentId) continue
+    n.position = { x: extraX, y }
+    extraX += COL_W
+  }
+
+  const edges = PD_LINKS
+    .filter(([a, b]) => byType.has(a) && byType.has(b))
+    .map(([a, b, color, dashed, animated]) => ({
+      id: `pd-edge-${byType.get(a).id}-${byType.get(b).id}`,
+      source: byType.get(a).id,
+      target: byType.get(b).id,
+      type: "smoothstep",
+      animated,
+      style: { stroke: color, strokeWidth: 2, ...(dashed ? { strokeDasharray: "6 5" } : {}) },
+      markerEnd: { type: "arrowclosed", color },
+    }))
+  return { nodes, edges }
+}
+
+/** تجهيز ملف مستورد كامل: تطبيع العقد، ولملفات PD ترتيب وروابط ثابتة */
+export function prepareImportedWorkflow(workflow: any): { nodes: any[]; edges: any[] } {
+  const nodes = normalizeImportedNodes(workflow?.nodes || [])
+  return standardizePdWorkflow(nodes) || { nodes, edges: workflow?.edges || [] }
+}
