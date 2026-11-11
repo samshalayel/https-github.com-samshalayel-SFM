@@ -475,6 +475,35 @@ function WorkflowBuilderInner() {
     }
   }, [nodes, currentProjectId, mode, projectStages, currentStage, projectCurrentStage])
 
+  // ── إبلاغ سيسو بحالة المرحلة (البوابة مفتوحة داخل نافذة في سيسو) ─────────────
+  // كل البطاقات Pass = المرحلة مكتملة ومعتمدة. سيسو يحفظها للمشروع ويخبر بها الروبوتات.
+  const lastStageReportRef = useRef("")
+  useEffect(() => {
+    if (typeof window === "undefined" || window.parent === window) return // ليست داخل سيسو
+    if (!currentProjectName || mode !== "work" || nodes.length === 0) return
+    const regular = nodes.filter((n) => {
+      if (!n.type || n.type === "group" || n.type === "pipeline-stage") return false
+      const cfg = getNodeConfig(n.type)
+      return cfg ? cfg.kind !== "gate" : !(n.type.includes("gate") || n.type.includes("-lock-"))
+    })
+    if (regular.length === 0) return
+    const passed = regular.filter((n) => !!(n.data as any)?.completed).length
+    const stageCode = (projectCurrentStage || currentStage) as string
+    const status = passed === regular.length ? "completed" : passed > 0 ? "in_progress" : "not_started"
+    const key = `${currentProjectName}|${stageCode}|${status}|${passed}/${regular.length}`
+    if (key === lastStageReportRef.current) return
+    lastStageReportRef.current = key
+    window.parent.postMessage({
+      type: "sfm-stage-status",
+      project: currentProjectName,
+      stage: stageCode,
+      status,
+      passed,
+      total: regular.length,
+      at: new Date().toISOString(),
+    }, "*")
+  }, [nodes, currentProjectName, mode, currentStage, projectCurrentStage])
+
   // Save current stage data
   const handleSaveStage = async () => {
     if (!currentProjectId) {
