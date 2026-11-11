@@ -903,7 +903,8 @@ export function normalizeImportedNodes(nodes: any[]): any[] {
     }
     const data = { ...(n.data || {}) }
     if (!data.label && data.title) data.label = data.title
-    if (!data.points && (Array.isArray(data.inScope) || Array.isArray(data.outScope))) {
+    // points قد تأتي مصفوفة فارغة بجانب inScope/outScope — نملؤها منهما
+    if (!(Array.isArray(data.points) && data.points.length) && (Array.isArray(data.inScope) || Array.isArray(data.outScope))) {
       data.points = [
         ...(data.inScope || []).map((x: string) => `✅ داخل النطاق: ${x}`),
         ...(data.outScope || []).map((x: string) => `⛔ خارج النطاق: ${x}`),
