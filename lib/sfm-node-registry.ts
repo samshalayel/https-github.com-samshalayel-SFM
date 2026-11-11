@@ -896,6 +896,11 @@ export function normalizeImportedNodes(nodes: any[]): any[] {
   const out = (nodes || []).map((n: any) => {
     let type = resolveNodeType(n.type)
     if (type && !sfmNodeRegistry[type] && /[A-Z]/.test(type)) type = resolveNodeType(kebab(type))
+    // نوع عام (مثل pdCard) أو مجهول: نستنتجه من الـ id — "pd-summary-1" → pd-summary → pd-summary-node
+    if (!type || !sfmNodeRegistry[type]) {
+      const fromId = resolveNodeType(String(n.id || "").replace(/[-_]\d+$/, "").toLowerCase())
+      if (fromId && sfmNodeRegistry[fromId]) type = fromId
+    }
     const data = { ...(n.data || {}) }
     if (!data.label && data.title) data.label = data.title
     if (!data.points && (Array.isArray(data.inScope) || Array.isArray(data.outScope))) {
