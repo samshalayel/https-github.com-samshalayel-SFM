@@ -910,6 +910,12 @@ export function normalizeImportedNodes(nodes: any[]): any[] {
         ...(data.outScope || []).map((x: string) => `⛔ خارج النطاق: ${x}`),
       ]
     }
+    // بطاقات المراحل ترسم شكلها بنفسها — style/shape من المولّد (إطار، دائرة، توهج، خلفية)
+    // تنطبق على غلاف البطاقة فتظهر حولها. نحذفها لها فقط؛ group وغيرها تبقى كما هي.
+    if (type && sfmNodeRegistry[type]) {
+      const { style: _style, shape: _shape, className: _cls, ...rest } = n
+      return { ...rest, type, data }
+    }
     return { ...n, type, data }
   })
   const top = out.filter((n) => !n.parentId && n.position)
