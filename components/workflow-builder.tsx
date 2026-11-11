@@ -170,6 +170,12 @@ function WorkflowBuilderInner() {
   const [evidence, setEvidence] = useState<Evidence[]>([])
   const [currentProjectName, setCurrentProjectName] = useState<string | null>(null)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  // فتح ملف من سيسو (?import=): يمنع تحميل بيانات المرحلة من القاعدة فوق الملف قبل حفظه
+  const pendingImportRef = useRef<string | null>(
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("import") : null,
+  )
+  const importedStageLockRef = useRef<string | null>(null)
+  const [projectResolved, setProjectResolved] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
   const [lastSavedState, setLastSavedState] = useState<string>("")
@@ -289,7 +295,7 @@ function WorkflowBuilderInner() {
       if (!user) return
 
       const urlParams = new URLSearchParams(window.location.search)
-      const projectParam = urlParams.get("project")
+      const projectParam = (urlParams.get("project") || "").trim()
 
       const { data: projects, error } = await supabase
         .from("projects")
@@ -297,37 +303,61 @@ function WorkflowBuilderInner() {
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
 
-      if (error || !projects || projects.length === 0) return
+      if (error) return
+      const list = projects || []
 
-      // إذا في ?project= في URL — ابحث بالاسم
+      // ?project= (من سيسو): نفس الاسم تماماً أولاً، ثم اسم يحتويه — وإن لم يوجد يُنشأ
       if (projectParam) {
         const q = projectParam.toLowerCase()
-        const match = projects.find((p: any) =>
-          p.name.toLowerCase().includes(q) || p.name.toLowerCase() === q
-        )
+        const match = list.find((p: any) => p.name.toLowerCase() === q)
+          || list.find((p: any) => p.name.toLowerCase().includes(q))
         if (match) {
           setCurrentProjectId(match.id)
           setCurrentProjectName(match.name)
           return
         }
+        const { data: created, error: createError } = await supabase
+          .from("projects")
+          .insert({ name: projectParam, user_id: user.id, current_stage: "PD" })
+          .select()
+          .single()
+        if (!createError && created) {
+          setCurrentProjectId(created.id)
+          setCurrentProjectName(created.name)
+          toast({ title: "مشروع جديد", description: `أُنشئ المشروع ${created.name} من سيسو` })
+          return
+        }
       }
 
       // افتراضياً: آخر مشروع
-      setCurrentProjectId(projects[0].id)
-      setCurrentProjectName(projects[0].name)
+      if (list.length) {
+        setCurrentProjectId(list[0].id)
+        setCurrentProjectName(list[0].name)
+      }
     }
 
     if (!currentProjectId) {
-      loadProject()
+      loadProject().finally(() => setProjectResolved(true))
+    } else {
+      setProjectResolved(true)
     }
   }, [])
 
   // Load stage data only when project or stage actually changes (not on every DB refresh)
   useEffect(() => {
     if (!currentProjectId || !projectCurrentStage || mode !== "work") return
+    // ملف من سيسو قيد الفتح: لا نحمّل المرحلة من القاعدة فوقه
+    if (pendingImportRef.current) return
 
     // Build a key — only reload if the project/stage combination changed
     const stageKey = `${currentProjectId}-${projectCurrentStage}-${mode}`
+    // بعد حفظ الملف المستورد: ننتظر حتى تصير مرحلة المشروع هي مرحلة الملف، ولا نعيد التحميل
+    if (importedStageLockRef.current) {
+      if (projectCurrentStage !== importedStageLockRef.current) return
+      importedStageLockRef.current = null
+      loadedStageKeyRef.current = stageKey
+      return
+    }
     if (stageKey === loadedStageKeyRef.current) return
     loadedStageKeyRef.current = stageKey
 
@@ -1841,13 +1871,15 @@ const exportWorkflow = () => {
     input.click()
   }
 
-  // ── فتح ملف من سيسو: /?import=<رابط مؤقت موقّع لملف JSON> ─────────────────
-  // ينتظر جاهزية اللوحة (reactFlowInstance) ويُطبَّق مرة واحدة، ثم يُحذف الباراميتر من العنوان.
+  // ── فتح ملف من سيسو: /?project=<المشروع>&import=<رابط مؤقت موقّع لملف JSON> ──
+  // ينتظر: اللوحة جاهزة + المشروع محدد (أو أُنشئ) + مراحله محمّلة. ثم يعرض الملف،
+  // يحفظه في مرحلته داخل المشروع، ويجعل تلك المرحلة الحالية — فيبقى محفوظاً عند الرجوع.
   const importedFromUrlRef = useRef(false)
   useEffect(() => {
-    if (importedFromUrlRef.current || !reactFlowInstance) return
-    const src = new URLSearchParams(window.location.search).get("import")
-    if (!src || !/^https:\/\//i.test(src)) return
+    if (importedFromUrlRef.current || !reactFlowInstance || !projectResolved) return
+    const src = pendingImportRef.current
+    if (!src || !/^https:\/\//i.test(src)) { pendingImportRef.current = null; return }
+    if (currentProjectId && projectStages.length === 0) return // مراحل المشروع لم تُحمّل بعد
     importedFromUrlRef.current = true
     ;(async () => {
       try {
@@ -1868,27 +1900,41 @@ const exportWorkflow = () => {
           return
         }
         const prepared = prepareImportedWorkflow(workflow)
+        const importedStage = (detectImportedStage(workflow, prepared.nodes) || currentStage) as Stage
+        const importedEvidence = Array.isArray(workflow.evidence) ? workflow.evidence : []
         setNodes(prepared.nodes)
-        const importedStage = detectImportedStage(workflow, prepared.nodes)
-        if (importedStage) setCurrentStage(importedStage as Stage)
         setEdges(prepared.edges)
-        if (Array.isArray(workflow.evidence)) setEvidence(workflow.evidence)
-        setCurrentProjectName(null)
-        setHasUnsavedChanges(true)
-        toast({
-          title: "تم فتح الملف من سيسو",
-          description: `${workflow.nodes.length} nodes · ${workflow.edges?.length || 0} connections`,
-        })
+        setEvidence(importedEvidence)
+        setCurrentStage(importedStage)
+
+        if (currentProjectId) {
+          // حفظ في المشروع: مرحلة الملف تصير المرحلة الحالية للمشروع
+          importedStageLockRef.current = importedStage
+          const evidenceData = importedEvidence.reduce((acc: Record<string, any>, e: any) => ({ ...acc, [e.id]: e }), {})
+          await saveStageData(importedStage as StageCode, prepared.nodes, prepared.edges, evidenceData)
+          await setProjectCurrentStage(importedStage as StageCode)
+          setHasUnsavedChanges(false)
+          toast({
+            title: `تم فتح الملف في مشروع ${currentProjectName || ""}`,
+            description: `${importedStage} · ${prepared.nodes.length} nodes — حُفظ في المشروع`,
+          })
+        } else {
+          setHasUnsavedChanges(true)
+          toast({ title: "تم فتح الملف من سيسو", description: `${prepared.nodes.length} nodes · ${prepared.edges.length} connections` })
+        }
         setTimeout(() => reactFlowInstance?.fitView({ padding: 0.2 }), 150)
       } catch (e: any) {
+        importedStageLockRef.current = null
         toast({ title: "تعذّر فتح الملف", description: e?.message || "خطأ غير معروف", variant: "destructive" })
       } finally {
+        pendingImportRef.current = null
         const url = new URL(window.location.href)
         url.searchParams.delete("import")
+        url.searchParams.delete("project")
         window.history.replaceState(null, "", url.pathname + url.search)
       }
     })()
-  }, [reactFlowInstance])
+  }, [reactFlowInstance, projectResolved, currentProjectId, projectStages.length])
 
   return (
     <div
